@@ -1,0 +1,238 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 215 30% 98%;
+    --foreground: 224 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 84% 4.9%;
+
+    --primary: 228 75% 30%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 45 100% 51%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 228 75% 44%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 228 30% 90%;
+    --input: 228 30% 90%;
+    --ring: 228 75% 30%;
+
+    --radius: 0.4rem;
+
+    --sidebar-background: 228 75% 30%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 45 100% 51%;
+    --sidebar-primary-foreground: 228 75% 30%;
+    --sidebar-accent: 228 60% 40%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 228 60% 40%;
+    --sidebar-ring: 45 100% 51%;
+  }
+
+  .dark {
+    --background: 224 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 224 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 224 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 228 75% 50%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 45 100% 51%;
+    --secondary-foreground: 228 75% 30%;
+
+    --muted: 228 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 228 75% 40%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 228 32.6% 17.5%;
+    --input: 228 32.6% 17.5%;
+    --ring: 45 100% 51%;
+    
+    --sidebar-background: 228 75% 15%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 45 100% 51%;
+    --sidebar-primary-foreground: 228 75% 30%;
+    --sidebar-accent: 228 32.6% 25%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 228 32.6% 25%;
+    --sidebar-ring: 45 100% 51%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Enhanced document card with animation */
+  .document-card {
+    @apply border rounded-lg p-4 transition-all duration-300 hover:shadow-md hover:border-primary/20 hover:bg-primary/5;
+  }
+  
+  .status-pending {
+    @apply text-amber-600 bg-amber-50 border-amber-200;
+  }
+  
+  .status-approved {
+    @apply text-green-600 bg-green-50 border-green-200;
+  }
+  
+  .status-rejected {
+    @apply text-red-600 bg-red-50 border-red-200;
+  }
+  
+  .status-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  /* Animated elements */
+  .animated-item {
+    @apply animate-fade-in;
+  }
+  
+  /* Hover effects */
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-md;
+  }
+  
+  /* Pulse animation for loading states */
+  .pulse-animation {
+    @apply animate-pulse;
+  }
+  
+  /* Card hover effects */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-md hover:bg-muted/30;
+  }
+  
+  /* Button hover effects */
+  .button-hover {
+    @apply transition-all duration-200 hover:shadow-sm hover:translate-y-[-1px];
+  }
+  
+  /* Scrollable areas styling */
+  .custom-scrollbar {
+    @apply scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20;
+  }
+  
+  /* Badge hover effects */
+  .badge-hover {
+    @apply transition-colors duration-200 hover:bg-opacity-80;
+  }
+  
+  /* Compact UI styles */
+  .compact-card {
+    @apply shadow-sm border rounded-md overflow-hidden;
+  }
+  
+  .compact-card-header {
+    @apply py-3 px-4 bg-muted/20 border-b;
+  }
+  
+  .compact-card-content {
+    @apply p-3;
+  }
+  
+  /* Compact sidebar styles */
+  .sidebar-nav-item {
+    @apply flex items-center gap-2 p-2 text-sm rounded-md transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground;
+  }
+  
+  .sidebar-nav-item-active {
+    @apply bg-sidebar-accent text-sidebar-accent-foreground font-medium;
+  }
+  
+  /* Royal blue & golden yellow theme components */
+  .royal-gradient {
+    @apply bg-gradient-to-r from-royal-dark via-royal to-royal-light;
+  }
+  
+  .golden-accent {
+    @apply border-golden text-golden-dark;
+  }
+  
+  .royal-card {
+    @apply border-royal/20 bg-white shadow-sm hover:shadow-royal/10;
+  }
+}
+
+/* Page transition */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Custom loading spinner */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: hsl(var(--primary));
+  animation: spinner 0.8s linear infinite;
+}
+
+@keyframes spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tooltip styles */
+.custom-tooltip {
+  @apply invisible absolute z-50 rounded bg-primary px-2 py-1 text-xs text-primary-foreground opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100;
+}
+
+/* Compact tag/status badges */
+.compact-badge {
+  @apply px-1.5 py-0.5 text-[10px] rounded font-medium inline-flex items-center;
+}

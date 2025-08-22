@@ -1,0 +1,7 @@
+project_id = "ucjmbghkbfnknscqerfm"
+
+[functions.send-password-reset-otp]
+verify_jwt = false
+
+[functions.verify-password-reset-otp]
+verify_jwt = false
