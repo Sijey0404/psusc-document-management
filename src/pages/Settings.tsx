@@ -174,7 +174,11 @@ const Settings = () => {
                     <p className="text-sm text-muted-foreground">Available Monday-Friday, 9 AM - 5 PM</p>
                   </div>
                 </div>
-                <Button variant="outline" className="w-full mt-4">
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={() => window.open('mailto:sancarlosPsu@gmail.com?subject=Support Request', '_blank')}
+                >
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Start Live Chat
                 </Button>
