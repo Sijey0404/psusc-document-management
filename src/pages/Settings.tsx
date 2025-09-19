@@ -1,4 +1,3 @@
-
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,30 +9,30 @@ import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon, Shield, FileText, Phone, Moon, Sun, Monitor, Mail, MessageCircle } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
-
 const Settings = () => {
-  const { isAdmin } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const {
+    isAdmin
+  } = useAuth();
+  const {
+    theme,
+    setTheme
+  } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [permissions, setPermissions] = useState({
     publicDocuments: true,
     departmentDocuments: false,
-    privateDocuments: true,
+    privateDocuments: true
   });
-
   useEffect(() => {
     setMounted(true);
   }, []);
-
   const handlePermissionChange = (key: keyof typeof permissions) => {
     setPermissions(prev => ({
       ...prev,
       [key]: !prev[key]
     }));
   };
-  
-  return (
-    <AppLayout isAdmin={isAdmin}>
+  return <AppLayout isAdmin={isAdmin}>
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-royal">Settings</h1>
@@ -65,11 +64,7 @@ const Settings = () => {
                     <Label htmlFor="public-docs" className="text-sm font-medium">Public Documents</Label>
                     <p className="text-xs text-muted-foreground">Allow everyone to view public documents</p>
                   </div>
-                  <Switch
-                    id="public-docs"
-                    checked={permissions.publicDocuments}
-                    onCheckedChange={() => handlePermissionChange('publicDocuments')}
-                  />
+                  <Switch id="public-docs" checked={permissions.publicDocuments} onCheckedChange={() => handlePermissionChange('publicDocuments')} />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
@@ -77,11 +72,7 @@ const Settings = () => {
                     <Label htmlFor="dept-docs" className="text-sm font-medium">Department Documents</Label>
                     <p className="text-xs text-muted-foreground">Share documents within your department</p>
                   </div>
-                  <Switch
-                    id="dept-docs"
-                    checked={permissions.departmentDocuments}
-                    onCheckedChange={() => handlePermissionChange('departmentDocuments')}
-                  />
+                  <Switch id="dept-docs" checked={permissions.departmentDocuments} onCheckedChange={() => handlePermissionChange('departmentDocuments')} />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
@@ -89,11 +80,7 @@ const Settings = () => {
                     <Label htmlFor="private-docs" className="text-sm font-medium">Private Documents</Label>
                     <p className="text-xs text-muted-foreground">Keep your documents private by default</p>
                   </div>
-                  <Switch
-                    id="private-docs"
-                    checked={permissions.privateDocuments}
-                    onCheckedChange={() => handlePermissionChange('privateDocuments')}
-                  />
+                  <Switch id="private-docs" checked={permissions.privateDocuments} onCheckedChange={() => handlePermissionChange('privateDocuments')} />
                 </div>
               </div>
             </div>
@@ -168,7 +155,7 @@ const Settings = () => {
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Email Support</p>
-                    <p className="text-sm text-muted-foreground">support@documentmanagement.com</p>
+                    <p className="text-sm text-muted-foreground">sancarlosPsu@gmail.com</p>
                   </div>
                 </div>
                 <Separator />
@@ -176,7 +163,7 @@ const Settings = () => {
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Phone Support</p>
-                    <p className="text-sm text-muted-foreground">+1 (555) 123-4567</p>
+                    <p className="text-sm text-muted-foreground">09952176139</p>
                   </div>
                 </div>
                 <Separator />
@@ -204,37 +191,20 @@ const Settings = () => {
                 Choose your preferred theme appearance
               </p>
               <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                {mounted && (
-                  <div className="grid grid-cols-3 gap-3">
-                    <Button
-                      variant={theme === 'light' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTheme('light')}
-                      className="flex items-center gap-2"
-                    >
+                {mounted && <div className="grid grid-cols-3 gap-3">
+                    <Button variant={theme === 'light' ? 'default' : 'outline'} size="sm" onClick={() => setTheme('light')} className="flex items-center gap-2">
                       <Sun className="h-4 w-4" />
                       Light
                     </Button>
-                    <Button
-                      variant={theme === 'dark' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTheme('dark')}
-                      className="flex items-center gap-2"
-                    >
+                    <Button variant={theme === 'dark' ? 'default' : 'outline'} size="sm" onClick={() => setTheme('dark')} className="flex items-center gap-2">
                       <Moon className="h-4 w-4" />
                       Dark
                     </Button>
-                    <Button
-                      variant={theme === 'system' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTheme('system')}
-                      className="flex items-center gap-2"
-                    >
+                    <Button variant={theme === 'system' ? 'default' : 'outline'} size="sm" onClick={() => setTheme('system')} className="flex items-center gap-2">
                       <Monitor className="h-4 w-4" />
                       System
                     </Button>
-                  </div>
-                )}
+                  </div>}
                 <p className="text-xs text-muted-foreground mt-2">
                   Current theme: {mounted ? theme : 'Loading...'}
                 </p>
@@ -243,8 +213,6 @@ const Settings = () => {
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
-  );
+    </AppLayout>;
 };
-
 export default Settings;
