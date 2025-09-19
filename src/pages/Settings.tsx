@@ -24,14 +24,57 @@ const Settings = () => {
               Configure your document management system settings
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-6">
-            <div className="p-8 text-center">
-              <h3 className="text-xl font-medium text-royal/70 mb-2">
-                Settings Page – Under Construction
-              </h3>
-              <p className="text-muted-foreground">
-                This section will be available soon. Please check back later.
+          <CardContent className="pt-6 space-y-6">
+            {/* Access Permissions */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-royal">Access Permissions</h3>
+              <p className="text-muted-foreground text-sm">
+                Control who sees what documents
               </p>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  Configure document visibility and access controls for different user roles.
+                </p>
+              </div>
+            </div>
+
+            {/* Privacy Policy */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-royal">Privacy Policy</h3>
+              <p className="text-muted-foreground text-sm">
+                Essential for data protection
+              </p>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  Review our data handling practices and privacy commitments.
+                </p>
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-royal">Contact Information</h3>
+              <p className="text-muted-foreground text-sm">
+                Support for users
+              </p>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  Get help and support from our technical team.
+                </p>
+              </div>
+            </div>
+
+            {/* Dark Mode */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-royal">Dark Mode</h3>
+              <p className="text-muted-foreground text-sm">
+                Toggle between light and dark themes
+              </p>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  Customize your viewing experience with theme preferences.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
