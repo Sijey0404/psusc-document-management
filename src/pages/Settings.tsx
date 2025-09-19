@@ -177,7 +177,7 @@ const Settings = () => {
                 <Button 
                   variant="outline" 
                   className="w-full mt-4"
-                  onClick={() => window.open('mailto:sancarlosPsu@gmail.com?subject=Support Request', '_blank')}
+                  onClick={() => window.open('https://mail.google.com/mail/u/3/#inbox?compose=new', '_blank')}
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Start Live Chat
