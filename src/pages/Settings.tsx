@@ -6,23 +6,98 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, Shield, FileText, Phone, Moon, Sun, Monitor, Mail, MessageCircle } from "lucide-react";
+import { Settings as SettingsIcon, Shield, FileText, Phone, Moon, Sun, Monitor, Mail, MessageCircle, Lock, Loader2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+
+// Form schema for password change
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .refine(password => /[A-Z]/.test(password), "Password must contain at least one uppercase letter")
+    .refine(password => /[0-9]/.test(password), "Password must contain at least one number"),
+  confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"]
+});
+
+type PasswordFormValues = z.infer<typeof passwordSchema>;
+
 const Settings = () => {
-  const {
-    isAdmin
-  } = useAuth();
-  const {
-    theme,
-    setTheme
-  } = useTheme();
+  const { isAdmin } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
   const [mounted, setMounted] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [permissions, setPermissions] = useState({
     publicDocuments: true,
     departmentDocuments: false,
     privateDocuments: true
   });
+
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      currentPassword: "",
+      password: "",
+      confirmPassword: ""
+    }
+  });
+
+  const handlePasswordChange = async (values: PasswordFormValues) => {
+    try {
+      setIsChangingPassword(true);
+
+      // First verify the current password by trying to sign in with it
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        throw new Error("User not found");
+      }
+
+      // Try to sign in with current password to verify it
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: values.currentPassword
+      });
+
+      if (verifyError) {
+        throw new Error("Current password is incorrect");
+      }
+
+      // Update password
+      const { error } = await supabase.auth.updateUser({
+        password: values.password
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password updated",
+        description: "Your password has been changed successfully"
+      });
+
+      passwordForm.reset();
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
+        variant: "destructive"
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -166,6 +241,78 @@ const Settings = () => {
                     <p className="text-sm text-muted-foreground">09952176139</p>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Password Change */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-royal" />
+                <h3 className="text-lg font-semibold text-royal">Change Password</h3>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Update your account password for better security
+              </p>
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <Form {...passwordForm}>
+                  <form onSubmit={passwordForm.handleSubmit(handlePasswordChange)} className="space-y-4">
+                    <FormField
+                      control={passwordForm.control}
+                      name="currentPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Current Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="••••••••" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={passwordForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="••••••••" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={passwordForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm New Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="••••••••" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button type="submit" disabled={isChangingPassword} className="w-full">
+                      {isChangingPassword ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating Password...
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="mr-2 h-4 w-4" />
+                          Change Password
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </Form>
               </div>
             </div>
 
