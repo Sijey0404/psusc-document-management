@@ -224,33 +224,6 @@ const Settings = () => {
               </Dialog>
             </div>
 
-            {/* Contact Information */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Phone className="h-5 w-5 text-royal" />
-                <h3 className="text-lg font-semibold text-royal">Contact Information</h3>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Support for users
-              </p>
-              <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Email Support</p>
-                    <p className="text-sm text-muted-foreground">sancarlosPsu@gmail.com</p>
-                  </div>
-                </div>
-                <Separator />
-                <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Phone Support</p>
-                    <p className="text-sm text-muted-foreground">09952176139</p>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Password Change */}
             <div className="space-y-4">
