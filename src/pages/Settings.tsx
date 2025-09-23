@@ -82,10 +82,15 @@ const Settings = () => {
 
       toast({
         title: "Password updated",
-        description: "Your password has been changed successfully"
+        description: "Your password has been changed successfully. You will be logged out for security."
       });
 
       passwordForm.reset();
+
+      // Log out the user for security after password change
+      setTimeout(async () => {
+        await supabase.auth.signOut();
+      }, 2000); // Small delay to let the user see the success message
     } catch (error: any) {
       console.error("Error changing password:", error);
       toast({
