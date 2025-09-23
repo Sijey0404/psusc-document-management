@@ -166,22 +166,6 @@ const Settings = () => {
                     <p className="text-sm text-muted-foreground">09952176139</p>
                   </div>
                 </div>
-                <Separator />
-                <div className="flex items-center gap-3">
-                  <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Live Chat</p>
-                    <p className="text-sm text-muted-foreground">Available Monday-Friday, 9 AM - 5 PM</p>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full mt-4"
-                  onClick={() => window.open('https://mail.google.com/mail/u/3/#inbox?compose=new', '_blank')}
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Start Live Chat
-                </Button>
               </div>
             </div>
 
