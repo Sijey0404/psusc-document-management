@@ -142,6 +142,35 @@ const DocumentDetails = () => {
         .eq('id', document.id);
       
       if (error) throw error;
+
+      // Get folder deadline for rating calculation
+      let folderDeadline = null;
+      if (document.folder_id) {
+        const { data: folderData } = await supabase
+          .from('folders' as any)
+          .select('deadline')
+          .eq('id', document.folder_id)
+          .maybeSingle();
+        
+        if (folderData && (folderData as any).deadline) {
+          folderDeadline = (folderData as any).deadline;
+        }
+      }
+
+      // Create rating record
+      const isOnTime = folderDeadline 
+        ? new Date(document.created_at) <= new Date(folderDeadline)
+        : true;
+
+      await supabase.from('faculty_ratings' as any).insert({
+        faculty_id: document.submitted_by,
+        document_id: document.id,
+        deadline: folderDeadline,
+        submitted_at: document.created_at,
+        reviewed_by: profile.id,
+        is_on_time: isOnTime,
+        document_status: 'APPROVED'
+      });
       
       setDocument(prev => {
         if (!prev) return null;
@@ -199,6 +228,35 @@ const DocumentDetails = () => {
         .eq('id', document.id);
       
       if (error) throw error;
+
+      // Get folder deadline for rating calculation
+      let folderDeadline = null;
+      if (document.folder_id) {
+        const { data: folderData } = await supabase
+          .from('folders' as any)
+          .select('deadline')
+          .eq('id', document.folder_id)
+          .maybeSingle();
+        
+        if (folderData && (folderData as any).deadline) {
+          folderDeadline = (folderData as any).deadline;
+        }
+      }
+
+      // Create rating record
+      const isOnTime = folderDeadline 
+        ? new Date(document.created_at) <= new Date(folderDeadline)
+        : true;
+
+      await supabase.from('faculty_ratings' as any).insert({
+        faculty_id: document.submitted_by,
+        document_id: document.id,
+        deadline: folderDeadline,
+        submitted_at: document.created_at,
+        reviewed_by: profile.id,
+        is_on_time: isOnTime,
+        document_status: 'REJECTED'
+      });
       
       setDocument(prev => {
         if (!prev) return null;
