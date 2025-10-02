@@ -4,7 +4,7 @@ import { useNavigate, Link, useLocation, useParams } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { File, FileText, Folder, Home, LogOut, Settings, Users, Moon, Sun, UserCheck, Key, HardDrive, Award } from "lucide-react";
+import { File, FileText, Folder, Home, LogOut, Settings, Users, Moon, Sun, UserCheck, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationDropdown } from "@/components/dashboard/NotificationDropdown";
@@ -198,13 +198,11 @@ const AppSidebar = ({ isAdmin }: { isAdmin: boolean }) => {
   const menuItems = [
     { path: isAdmin ? "/admin/dashboard" : "/dashboard", icon: Home, label: "Dashboard" },
     { path: "/documents", icon: FileText, label: "Documents" },
-    { path: "/ratings", icon: Award, label: "Ratings" },
     ...(isAdmin ? [
       { path: "/users", icon: Users, label: "Users" },
       { path: "/account-confirmation", icon: UserCheck, label: "Account Confirmation" },
       { path: "/account-recovery", icon: Key, label: "Account Recovery" },
-      { path: "/folders", icon: Folder, label: "Folders" },
-      { path: "/admin/file-storage", icon: HardDrive, label: "My Storage" }
+      { path: "/folders", icon: Folder, label: "Folders" }
     ] : [
       { path: "/faculty-folders", icon: Folder, label: "Folders" }
     ]),
