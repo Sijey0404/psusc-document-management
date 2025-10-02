@@ -21,10 +21,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, FileText, Trash2, Download, Search, HardDrive } from "lucide-react";
+import { Upload, FileText, Trash2, Download, Search, HardDrive, Folder, FolderPlus, ChevronRight, Home } from "lucide-react";
 
 interface AdminFile {
   id: string;
@@ -45,12 +53,16 @@ const AdminFileStorage = () => {
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [fileToDelete, setFileToDelete] = useState<AdminFile | null>(null);
+  const [currentPath, setCurrentPath] = useState("/");
+  const [folders, setFolders] = useState<string[]>([]);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
 
   useEffect(() => {
     if (user && isAdmin) {
       fetchFiles();
     }
-  }, [user, isAdmin]);
+  }, [user, isAdmin, currentPath]);
 
   useEffect(() => {
     if (searchQuery) {
@@ -70,11 +82,33 @@ const AdminFileStorage = () => {
         .from('admin_files' as any)
         .select('*')
         .eq('user_id', user?.id)
+        .eq('folder_path', currentPath)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setFiles((data as any) || []);
-      setFilteredFiles((data as any) || []);
+      
+      const allFiles = (data as any) || [];
+      setFiles(allFiles);
+      
+      // Extract unique folders in current path
+      const { data: allData } = await supabase
+        .from('admin_files' as any)
+        .select('folder_path')
+        .eq('user_id', user?.id);
+      
+      const subfolders = new Set<string>();
+      (allData as any)?.forEach((item: any) => {
+        const path = item.folder_path;
+        if (path.startsWith(currentPath) && path !== currentPath) {
+          const relativePath = path.substring(currentPath.length);
+          const nextFolder = relativePath.split('/').filter(Boolean)[0];
+          if (nextFolder) {
+            subfolders.add(nextFolder);
+          }
+        }
+      });
+      
+      setFolders(Array.from(subfolders));
     } catch (error: any) {
       console.error("Error fetching files:", error);
       toast({
@@ -107,7 +141,10 @@ const AdminFileStorage = () => {
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      const storagePath = currentPath === '/' 
+        ? `${user.id}/${fileName}`
+        : `${user.id}${currentPath}${fileName}`;
+      const filePath = storagePath;
 
       const { error: uploadError } = await supabase.storage
         .from('admin-files')
@@ -124,7 +161,7 @@ const AdminFileStorage = () => {
           file_path: filePath,
           file_size: file.size,
           file_type: file.type,
-          folder_path: '/',
+          folder_path: currentPath,
         });
 
       if (dbError) throw dbError;
@@ -233,6 +270,65 @@ const AdminFileStorage = () => {
     });
   };
 
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim() || !user) return;
+
+    const newPath = currentPath === '/' 
+      ? `/${newFolderName}/`
+      : `${currentPath}${newFolderName}/`;
+
+    try {
+      // Create a placeholder file to represent the folder
+      const { error } = await supabase
+        .from('admin_files' as any)
+        .insert({
+          user_id: user.id,
+          file_name: '.folder',
+          file_path: `${user.id}${newPath}.folder`,
+          file_size: 0,
+          file_type: 'folder',
+          folder_path: newPath,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Folder created successfully",
+      });
+
+      setNewFolderName("");
+      setShowCreateFolder(false);
+      fetchFiles();
+    } catch (error: any) {
+      console.error("Error creating folder:", error);
+      toast({
+        title: "Failed to create folder",
+        description: error.message || "Failed to create folder",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const navigateToFolder = (folderName: string) => {
+    const newPath = currentPath === '/' 
+      ? `/${folderName}/`
+      : `${currentPath}${folderName}/`;
+    setCurrentPath(newPath);
+  };
+
+  const navigateUp = () => {
+    if (currentPath === '/') return;
+    const parts = currentPath.split('/').filter(Boolean);
+    parts.pop();
+    setCurrentPath(parts.length === 0 ? '/' : `/${parts.join('/')}/`);
+  };
+
+  const getPathBreadcrumbs = () => {
+    if (currentPath === '/') return [];
+    return currentPath.split('/').filter(Boolean);
+  };
+
   if (!isAdmin) {
     return (
       <AppLayout>
@@ -246,27 +342,65 @@ const AdminFileStorage = () => {
   return (
     <AppLayout>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="flex items-center gap-2">
-            <HardDrive className="h-6 w-6 text-primary" />
-            <CardTitle>My Personal Storage</CardTitle>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <HardDrive className="h-6 w-6 text-primary" />
+              <CardTitle>My Personal Storage</CardTitle>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowCreateFolder(true)}
+                variant="outline"
+                className="gap-2"
+              >
+                <FolderPlus className="h-4 w-4" />
+                New Folder
+              </Button>
+              <Input
+                type="file"
+                id="file-upload"
+                className="hidden"
+                onChange={handleFileUpload}
+                disabled={uploading}
+              />
+              <Button
+                onClick={() => document.getElementById('file-upload')?.click()}
+                disabled={uploading}
+                className="gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                {uploading ? "Uploading..." : "Upload File"}
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Input
-              type="file"
-              id="file-upload"
-              className="hidden"
-              onChange={handleFileUpload}
-              disabled={uploading}
-            />
+          
+          {/* Breadcrumb Navigation */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Button
-              onClick={() => document.getElementById('file-upload')?.click()}
-              disabled={uploading}
-              className="gap-2"
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentPath('/')}
+              className="h-8 px-2"
             >
-              <Upload className="h-4 w-4" />
-              {uploading ? "Uploading..." : "Upload File"}
+              <Home className="h-4 w-4" />
             </Button>
+            {getPathBreadcrumbs().map((folder, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <ChevronRight className="h-4 w-4" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const parts = getPathBreadcrumbs().slice(0, index + 1);
+                    setCurrentPath(`/${parts.join('/')}/`);
+                  }}
+                  className="h-8"
+                >
+                  {folder}
+                </Button>
+              </div>
+            ))}
           </div>
         </CardHeader>
         <CardContent>
@@ -284,20 +418,40 @@ const AdminFileStorage = () => {
 
           {loading ? (
             <div className="flex justify-center py-8">
-              <p>Loading files...</p>
+              <p>Loading...</p>
             </div>
-          ) : filteredFiles.length > 0 ? (
+          ) : folders.length > 0 || filteredFiles.length > 0 ? (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>File Name</TableHead>
+                    <TableHead>Name</TableHead>
                     <TableHead>Size</TableHead>
-                    <TableHead>Uploaded</TableHead>
+                    <TableHead>Modified</TableHead>
                     <TableHead className="w-[120px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {/* Show folders first */}
+                  {folders.map((folder) => (
+                    <TableRow 
+                      key={folder}
+                      className="cursor-pointer hover:bg-accent"
+                      onClick={() => navigateToFolder(folder)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Folder className="h-4 w-4 text-primary" />
+                          <span className="font-medium">{folder}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>-</TableCell>
+                      <TableCell>-</TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  ))}
+                  
+                  {/* Then show files */}
                   {filteredFiles.map((file) => (
                     <TableRow key={file.id}>
                       <TableCell>
@@ -334,9 +488,9 @@ const AdminFileStorage = () => {
           ) : (
             <div className="flex flex-col items-center justify-center py-12">
               <HardDrive className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">No files yet</p>
+              <p className="text-lg font-medium">No files or folders yet</p>
               <p className="text-muted-foreground">
-                {searchQuery ? "No files match your search" : "Upload your first file to get started"}
+                {searchQuery ? "No items match your search" : "Create a folder or upload your first file to get started"}
               </p>
             </div>
           )}
@@ -357,6 +511,31 @@ const AdminFileStorage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showCreateFolder} onOpenChange={setShowCreateFolder}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Folder</DialogTitle>
+            <DialogDescription>
+              Enter a name for your new folder
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder="Folder name"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateFolder(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
+              Create
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
