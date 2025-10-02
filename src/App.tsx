@@ -21,8 +21,6 @@ import Folders from "./pages/Folders";
 import FacultyFolders from "./pages/FacultyFolders";
 import AccountConfirmation from "./pages/AccountConfirmation";
 import AccountRecovery from "./pages/AccountRecovery";
-import AdminFileStorage from "./pages/AdminFileStorage";
-import FacultyRatings from "./pages/FacultyRatings";
 
 const queryClient = new QueryClient();
 
@@ -99,7 +97,6 @@ const App = () => (
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/users" element={<UserManagement />} />
               <Route path="/folders" element={<Folders />} />
-              <Route path="/admin/file-storage" element={<AdminFileStorage />} />
               <Route path="/account-confirmation" element={<AccountConfirmation />} />
               <Route path="/account-recovery" element={<AccountRecovery />} />
             </Route>
@@ -115,7 +112,6 @@ const App = () => (
               <Route path="/documents" element={<Documents />} />
               <Route path="/documents/new" element={<DocumentSubmission />} />
               <Route path="/documents/:id" element={<DocumentDetails />} />
-              <Route path="/ratings" element={<FacultyRatings />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
             
