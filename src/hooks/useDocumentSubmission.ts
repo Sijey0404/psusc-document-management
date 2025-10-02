@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -220,7 +219,6 @@ export const useDocumentSubmission = () => {
           submitted_by: user.id,
           department_id: formData.selectedDepartment,
           category_id: formData.selectedCategory,
-          folder_id: formData.selectedFolder !== "none" ? formData.selectedFolder : null, // Handle "none" value
           file_path: filePath,
           file_type: formData.file.type,
           file_size: formData.file.size,
