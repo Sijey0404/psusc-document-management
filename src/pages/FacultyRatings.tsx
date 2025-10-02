@@ -24,13 +24,8 @@ interface FacultyRating {
   reviewed_at: string;
   is_on_time: boolean;
   document_status: string;
-  documents?: {
-    title: string;
-  };
-  profiles?: {
-    name: string;
-  };
 }
+
 
 interface RatingStats {
   total_submissions: number;
@@ -45,6 +40,8 @@ const FacultyRatings = () => {
   const [ratings, setRatings] = useState<FacultyRating[]>([]);
   const [stats, setStats] = useState<RatingStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileMap, setProfileMap] = useState<Record<string, { name: string; position?: string }>>({});
+  const [docMap, setDocMap] = useState<Record<string, { title: string }>>({});
 
   useEffect(() => {
     if (user) {
@@ -56,30 +53,78 @@ const FacultyRatings = () => {
   const fetchRatings = async () => {
     try {
       setLoading(true);
-      let query = supabase
-        .from('faculty_ratings' as any)
-        .select(`
-          *,
-          documents:document_id (title),
-          profiles:faculty_id (name)
-        `)
-        .order('reviewed_at', { ascending: false });
 
-      // If not admin, only show own ratings
-      if (!isAdmin && user) {
-        query = query.eq('faculty_id', user.id);
+      let instructorProfiles: { id: string; name: string; position?: string }[] = [];
+
+      if (isAdmin) {
+        // Fetch INSTRUCTOR profiles first (avoid relying on schema relationships)
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles' as any)
+          .select('id, name, position')
+          .eq('position', 'INSTRUCTOR');
+        if (profilesError) throw profilesError;
+        instructorProfiles = (profiles as any) || [];
+        // Build quick lookup
+        const map: Record<string, { name: string; position?: string }> = {};
+        instructorProfiles.forEach(p => (map[p.id] = { name: p.name, position: p.position }));
+        setProfileMap(map);
+
+        // If no instructors, nothing to show
+        if (instructorProfiles.length === 0) {
+          setRatings([]);
+          setDocMap({});
+          return;
+        }
+      } else if (user) {
+        // For non-admin, fetch own profile for display
+        const { data: me, error: meErr } = await supabase
+          .from('profiles' as any)
+          .select('id, name, position')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (meErr) throw meErr;
+        if (me) setProfileMap({ [(me as any).id]: { name: (me as any).name, position: (me as any).position } });
       }
 
-      const { data, error } = await query;
+      // Build ratings query
+      let ratingsQuery = supabase
+        .from('faculty_ratings' as any)
+        .select('*')
+        .order('reviewed_at', { ascending: false });
 
-      if (error) throw error;
-      setRatings((data as any) || []);
+      if (isAdmin) {
+        const instructorIds = instructorProfiles.map(p => p.id);
+        ratingsQuery = ratingsQuery.in('faculty_id', instructorIds);
+      } else if (user) {
+        ratingsQuery = ratingsQuery.eq('faculty_id', user.id);
+      }
+
+      const { data: ratingsData, error: ratingsError } = await ratingsQuery;
+      if (ratingsError) throw ratingsError;
+
+      const ratings = (ratingsData as any[]) || [];
+      setRatings(ratings as any);
+
+      // Fetch related document titles separately
+      const docIds = Array.from(new Set(ratings.map(r => r.document_id))).filter(Boolean);
+      if (docIds.length > 0) {
+        const { data: docs, error: docsError } = await supabase
+          .from('documents' as any)
+          .select('id, title')
+          .in('id', docIds);
+        if (docsError) throw docsError;
+        const dMap: Record<string, { title: string }> = {};
+        (docs as any[]).forEach(d => (dMap[d.id] = { title: d.title }));
+        setDocMap(dMap);
+      } else {
+        setDocMap({});
+      }
     } catch (error: any) {
-      console.error("Error fetching ratings:", error);
+      console.error('Error fetching ratings:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to load ratings",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to load ratings',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -184,9 +229,9 @@ const FacultyRatings = () => {
                     {ratings.map((rating) => (
                       <TableRow key={rating.id}>
                         {isAdmin && (
-                          <TableCell>{rating.profiles?.name || "Unknown"}</TableCell>
+                          <TableCell>{profileMap[rating.faculty_id]?.name || "Unknown"}</TableCell>
                         )}
-                        <TableCell>{rating.documents?.title || "Unknown"}</TableCell>
+                        <TableCell>{docMap[rating.document_id]?.title || "Unknown"}</TableCell>
                         <TableCell>{formatDate(rating.submitted_at)}</TableCell>
                         {ratings.some(r => r.deadline) && (
                           <TableCell>
