@@ -132,6 +132,26 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    console.log("Link data received:", JSON.stringify(linkData));
+
+    // Extract tokens from the response
+    const accessToken = linkData?.properties?.access_token;
+    const refreshToken = linkData?.properties?.refresh_token;
+
+    console.log("Access token present:", !!accessToken);
+    console.log("Refresh token present:", !!refreshToken);
+
+    if (!accessToken || !refreshToken) {
+      console.error("Tokens not found in link data");
+      return new Response(
+        JSON.stringify({ error: "Failed to generate session tokens" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     console.log("Setting password change required flag...");
     // Set password change required flag
     const { error: flagError } = await supabase
@@ -146,8 +166,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Returning success response with tokens");
     return new Response(JSON.stringify({ 
       success: true,
-      access_token: linkData.properties?.access_token,
-      refresh_token: linkData.properties?.refresh_token,
+      access_token: accessToken,
+      refresh_token: refreshToken,
       user: user,
       message: "OTP verified successfully" 
     }), {
