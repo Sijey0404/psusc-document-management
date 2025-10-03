@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const { toast } = useAuth();
+  const navigate = useNavigate();
 
   const handleSendOTP = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -81,7 +82,8 @@ const ForgotPassword = () => {
           description: "You will now be prompted to change your password",
         });
         
-        // The AuthContext will handle redirecting to password change dialog
+        // Navigate to root - AuthContext will detect password_change_required and show dialog
+        navigate("/");
         return;
       }
     } catch (error: any) {
