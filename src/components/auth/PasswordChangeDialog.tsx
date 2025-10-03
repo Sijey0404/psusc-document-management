@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
@@ -31,6 +32,7 @@ const PasswordChangeDialog = ({
   const {
     toast
   } = useToast();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -64,13 +66,30 @@ const PasswordChangeDialog = ({
           password_change_required: false
         }).eq("id", user.id);
         if (profileError) throw profileError;
+
+        // Fetch user profile to determine redirect
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role, position")
+          .eq("id", user.id)
+          .single();
+
+        toast({
+          title: "Password updated",
+          description: "Your password has been changed successfully"
+        });
+        form.reset();
+        onClose();
+
+        // Redirect based on user type
+        if (profile?.role === true) {
+          navigate("/admin/dashboard");
+        } else if (profile?.position === "INSTRUCTOR") {
+          navigate("/faculty/dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       }
-      toast({
-        title: "Password updated",
-        description: "Your password has been changed successfully"
-      });
-      form.reset();
-      onClose();
     } catch (error: any) {
       console.error("Error changing password:", error);
       toast({
