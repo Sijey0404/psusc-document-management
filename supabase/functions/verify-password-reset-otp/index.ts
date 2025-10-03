@@ -134,23 +134,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Link data received:", JSON.stringify(linkData));
 
-    // Extract tokens from the response
-    const accessToken = linkData?.properties?.access_token;
-    const refreshToken = linkData?.properties?.refresh_token;
+    // Extract optional tokens and the action link
+    const accessToken = (linkData as any)?.properties?.access_token;
+    const refreshToken = (linkData as any)?.properties?.refresh_token;
+    const actionLink = (linkData as any)?.properties?.action_link || (linkData as any)?.action_link;
 
     console.log("Access token present:", !!accessToken);
     console.log("Refresh token present:", !!refreshToken);
-
-    if (!accessToken || !refreshToken) {
-      console.error("Tokens not found in link data");
-      return new Response(
-        JSON.stringify({ error: "Failed to generate session tokens" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
+    console.log("Action link present:", !!actionLink);
 
     console.log("Setting password change required flag...");
     // Set password change required flag
@@ -163,9 +154,10 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error setting password change flag:", flagError);
     }
 
-    console.log("Returning success response with tokens");
+    console.log("Returning success response");
     return new Response(JSON.stringify({ 
       success: true,
+      action_link: actionLink,
       access_token: accessToken,
       refresh_token: refreshToken,
       user: user,

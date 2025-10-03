@@ -65,7 +65,17 @@ const ForgotPassword = () => {
         throw new Error(data.error);
       }
       
-      if (data.success && data.access_token) {
+      // Prefer action_link flow if provided
+      if (data?.success && data?.action_link) {
+        toast({
+          title: "Verification Successful",
+          description: "Redirecting to secure recovery...",
+        });
+        window.location.href = data.action_link;
+        return;
+      }
+      
+      if (data?.success && data.access_token) {
         // Set the session with the tokens received from the edge function
         const { error: sessionError } = await supabase.auth.setSession({
           access_token: data.access_token,
