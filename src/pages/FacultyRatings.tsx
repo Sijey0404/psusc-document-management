@@ -41,7 +41,7 @@ const FacultyRatings = () => {
   const [stats, setStats] = useState<RatingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileMap, setProfileMap] = useState<Record<string, { name: string; position?: string }>>({});
-  const [docMap, setDocMap] = useState<Record<string, { title: string }>>({});
+  const [docMap, setDocMap] = useState<Record<string, { title: string; categoryDeadline?: string }>>({});
 
   useEffect(() => {
     if (user) {
@@ -105,17 +105,38 @@ const FacultyRatings = () => {
       const ratings = (ratingsData as any[]) || [];
       setRatings(ratings as any);
 
-      // Fetch related document titles separately
+      // Fetch related document titles and category deadlines
       const docIds = Array.from(new Set(ratings.map(r => r.document_id))).filter(Boolean);
       if (docIds.length > 0) {
         const { data: docs, error: docsError } = await supabase
           .from('documents' as any)
-          .select('id, title')
+          .select('id, title, category_id, document_categories(deadline)')
           .in('id', docIds);
         if (docsError) throw docsError;
-        const dMap: Record<string, { title: string }> = {};
-        (docs as any[]).forEach(d => (dMap[d.id] = { title: d.title }));
+        const dMap: Record<string, { title: string; categoryDeadline?: string }> = {};
+        (docs as any[]).forEach(d => {
+          dMap[d.id] = { 
+            title: d.title,
+            categoryDeadline: d.document_categories?.deadline
+          };
+        });
         setDocMap(dMap);
+        
+        // Recalculate is_on_time based on actual category deadline
+        const updatedRatings = ratings.map(rating => {
+          const categoryDeadline = dMap[rating.document_id]?.categoryDeadline;
+          if (categoryDeadline) {
+            const submittedDate = new Date(rating.submitted_at);
+            const deadlineDate = new Date(categoryDeadline);
+            return {
+              ...rating,
+              deadline: categoryDeadline,
+              is_on_time: submittedDate <= deadlineDate
+            };
+          }
+          return rating;
+        });
+        setRatings(updatedRatings as any);
       } else {
         setDocMap({});
       }
