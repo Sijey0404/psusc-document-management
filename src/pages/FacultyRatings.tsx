@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Award, TrendingUp, Clock, CheckCircle } from "lucide-react";
+import { Award, TrendingUp, Clock, CheckCircle, ThumbsUp } from "lucide-react";
 
 interface FacultyRating {
   id: string;
@@ -32,6 +32,8 @@ interface RatingStats {
   on_time_submissions: number;
   late_submissions: number;
   on_time_percentage: number;
+  approved_submissions: number;
+  approval_percentage: number;
 }
 
 const FacultyRatings = () => {
@@ -142,15 +144,21 @@ const FacultyRatings = () => {
           const totalSubmissions = updatedRatings.length;
           const onTimeSubmissions = updatedRatings.filter(r => r.is_on_time).length;
           const lateSubmissions = totalSubmissions - onTimeSubmissions;
+          const approvedSubmissions = updatedRatings.filter(r => r.document_status === 'APPROVED').length;
           const onTimePercentage = totalSubmissions > 0 
             ? Math.round((onTimeSubmissions / totalSubmissions) * 100) 
+            : 0;
+          const approvalPercentage = totalSubmissions > 0
+            ? Math.round((approvedSubmissions / totalSubmissions) * 100)
             : 0;
           
           setStats({
             total_submissions: totalSubmissions,
             on_time_submissions: onTimeSubmissions,
             late_submissions: lateSubmissions,
-            on_time_percentage: onTimePercentage
+            on_time_percentage: onTimePercentage,
+            approved_submissions: approvedSubmissions,
+            approval_percentage: approvalPercentage
           });
         }
       } else {
@@ -160,7 +168,9 @@ const FacultyRatings = () => {
             total_submissions: 0,
             on_time_submissions: 0,
             late_submissions: 0,
-            on_time_percentage: 0
+            on_time_percentage: 0,
+            approved_submissions: 0,
+            approval_percentage: 0
           });
         }
       }
@@ -190,7 +200,7 @@ const FacultyRatings = () => {
     <AppLayout>
       <div className="space-y-6">
         {!isAdmin && stats && (
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
@@ -225,6 +235,18 @@ const FacultyRatings = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.on_time_percentage.toFixed(0)}%</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Approval Rate</CardTitle>
+                <ThumbsUp className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{stats.approval_percentage.toFixed(0)}%</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats.approved_submissions} approved
+                </p>
               </CardContent>
             </Card>
           </div>
