@@ -46,7 +46,6 @@ const FacultyRatings = () => {
   useEffect(() => {
     if (user) {
       fetchRatings();
-      fetchStats();
     }
   }, [user, isAdmin]);
 
@@ -137,8 +136,33 @@ const FacultyRatings = () => {
           return rating;
         });
         setRatings(updatedRatings as any);
+        
+        // Calculate stats locally based on actual deadline comparison
+        if (!isAdmin) {
+          const totalSubmissions = updatedRatings.length;
+          const onTimeSubmissions = updatedRatings.filter(r => r.is_on_time).length;
+          const lateSubmissions = totalSubmissions - onTimeSubmissions;
+          const onTimePercentage = totalSubmissions > 0 
+            ? Math.round((onTimeSubmissions / totalSubmissions) * 100) 
+            : 0;
+          
+          setStats({
+            total_submissions: totalSubmissions,
+            on_time_submissions: onTimeSubmissions,
+            late_submissions: lateSubmissions,
+            on_time_percentage: onTimePercentage
+          });
+        }
       } else {
         setDocMap({});
+        if (!isAdmin) {
+          setStats({
+            total_submissions: 0,
+            on_time_submissions: 0,
+            late_submissions: 0,
+            on_time_percentage: 0
+          });
+        }
       }
     } catch (error: any) {
       console.error('Error fetching ratings:', error);
@@ -149,24 +173,6 @@ const FacultyRatings = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    if (!user) return;
-
-    try {
-      if (!isAdmin) {
-        const { data, error } = await supabase
-          .rpc('get_faculty_rating_stats' as any, { faculty_user_id: user.id });
-
-        if (error) throw error;
-        if (data && Array.isArray(data) && data.length > 0) {
-          setStats(data[0] as any);
-        }
-      }
-    } catch (error: any) {
-      console.error("Error fetching stats:", error);
     }
   };
 
@@ -218,7 +224,7 @@ const FacultyRatings = () => {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.on_time_percentage}%</div>
+                <div className="text-2xl font-bold">{stats.on_time_percentage.toFixed(0)}%</div>
               </CardContent>
             </Card>
           </div>
