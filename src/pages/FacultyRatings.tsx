@@ -39,6 +39,7 @@ const FacultyRatings = () => {
   const { user, isAdmin } = useAuth();
   const [ratings, setRatings] = useState<FacultyRating[]>([]);
   const [stats, setStats] = useState<RatingStats | null>(null);
+  const [adminStats, setAdminStats] = useState<RatingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileMap, setProfileMap] = useState<Record<string, { name: string; position?: string }>>({});
   const [docMap, setDocMap] = useState<Record<string, { title: string; categoryDeadline?: string }>>({});
@@ -138,30 +139,38 @@ const FacultyRatings = () => {
         setRatings(updatedRatings as any);
         
         // Calculate stats locally based on actual deadline comparison
-        if (!isAdmin) {
-          const totalSubmissions = updatedRatings.length;
-          const onTimeSubmissions = updatedRatings.filter(r => r.is_on_time).length;
-          const lateSubmissions = totalSubmissions - onTimeSubmissions;
-          const onTimePercentage = totalSubmissions > 0 
-            ? Math.round((onTimeSubmissions / totalSubmissions) * 100) 
-            : 0;
-          
-          setStats({
-            total_submissions: totalSubmissions,
-            on_time_submissions: onTimeSubmissions,
-            late_submissions: lateSubmissions,
-            on_time_percentage: onTimePercentage
-          });
+        const totalSubmissions = updatedRatings.length;
+        const onTimeSubmissions = updatedRatings.filter(r => r.is_on_time).length;
+        const lateSubmissions = totalSubmissions - onTimeSubmissions;
+        const onTimePercentage = totalSubmissions > 0 
+          ? Math.round((onTimeSubmissions / totalSubmissions) * 100) 
+          : 0;
+        
+        const calculatedStats = {
+          total_submissions: totalSubmissions,
+          on_time_submissions: onTimeSubmissions,
+          late_submissions: lateSubmissions,
+          on_time_percentage: onTimePercentage
+        };
+        
+        if (isAdmin) {
+          setAdminStats(calculatedStats);
+        } else {
+          setStats(calculatedStats);
         }
       } else {
         setDocMap({});
-        if (!isAdmin) {
-          setStats({
-            total_submissions: 0,
-            on_time_submissions: 0,
-            late_submissions: 0,
-            on_time_percentage: 0
-          });
+        const emptyStats = {
+          total_submissions: 0,
+          on_time_submissions: 0,
+          late_submissions: 0,
+          on_time_percentage: 0
+        };
+        
+        if (isAdmin) {
+          setAdminStats(emptyStats);
+        } else {
+          setStats(emptyStats);
         }
       }
     } catch (error: any) {
@@ -189,6 +198,47 @@ const FacultyRatings = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
+        {isAdmin && adminStats && (
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
+                <Award className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{adminStats.total_submissions}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">On Time</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{adminStats.on_time_submissions}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Late</CardTitle>
+                <Clock className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{adminStats.late_submissions}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">On Time Rate</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{adminStats.on_time_percentage}%</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        
         {!isAdmin && stats && (
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
