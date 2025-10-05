@@ -14,12 +14,14 @@ export const RecentNotificationsList = ({ notifications, loading, inCard = true 
   const navigate = useNavigate();
 
   const handleNotificationClick = (notification: Notification) => {
-    // If it's a folder notification, redirect to faculty-folders with the folder ID
-    if (notification.type.includes('FOLDER') || notification.message.includes('folder')) {
+    // Handle different notification types
+    if (notification.type === 'ACCOUNT_CONFIRMATION') {
+      navigate(`/account-confirmation`);
+    } else if (notification.type === 'ACCOUNT_RECOVERY') {
+      navigate(`/account-recovery`);
+    } else if (notification.type.includes('FOLDER') || notification.message.includes('folder')) {
       navigate(`/faculty-folders?folder=${notification.reference_id}`);
-    } 
-    // Otherwise, use the existing document navigation logic
-    else if (notification.reference_id) {
+    } else if (notification.reference_id) {
       navigate(`/documents/${notification.reference_id}`);
     }
   };
@@ -49,6 +51,10 @@ export const RecentNotificationsList = ({ notifications, loading, inCard = true 
                 <div className="mr-4">
                   {notification.type === 'DOCUMENT_UPLOAD' ? (
                     <FileText className="h-8 w-8 text-blue-500" />
+                  ) : notification.type === 'ACCOUNT_CONFIRMATION' ? (
+                    <Bell className="h-8 w-8 text-green-500" />
+                  ) : notification.type === 'ACCOUNT_RECOVERY' ? (
+                    <Bell className="h-8 w-8 text-orange-500" />
                   ) : notification.type.includes('FOLDER') || notification.message.includes('folder') ? (
                     <Folder className="h-8 w-8 text-green-500" />
                   ) : (

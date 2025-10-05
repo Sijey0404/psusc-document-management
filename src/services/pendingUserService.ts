@@ -22,13 +22,38 @@ export const PendingUserService = {
       status: 'PENDING' as const,
     };
 
-    const { error } = await supabase
+    const { data: insertedUser, error } = await supabase
       .from('pending_users')
-      .insert(payload);
+      .insert(payload)
+      .select()
+      .single();
 
     if (error) throw error;
-    // Do not attempt to select/return the row here due to RLS (public users can't SELECT)
-    return payload as unknown as PendingUser;
+
+    // Create notification for all admins about the new account confirmation request
+    try {
+      const { data: admins } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', true);
+
+      if (admins && admins.length > 0) {
+        const notifications = admins.map(admin => ({
+          user_id: admin.id,
+          message: `New account confirmation request from ${userData.name} (${userData.email})`,
+          type: 'ACCOUNT_CONFIRMATION',
+          reference_id: insertedUser?.id || '',
+          read: false
+        }));
+
+        await supabase.from('notifications').insert(notifications);
+      }
+    } catch (notifError) {
+      console.error('Error creating admin notifications:', notifError);
+      // Don't throw here, the pending user was created successfully
+    }
+
+    return insertedUser || payload as unknown as PendingUser;
   },
 
   async getPendingUsers(): Promise<PendingUser[]> {

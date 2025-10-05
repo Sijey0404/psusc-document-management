@@ -27,7 +27,18 @@ export const NotificationDropdown = () => {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase
+      // Fetch notifications from the notifications table
+      const { data: notifData, error: notifError } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (notifError) throw notifError;
+      
+      // Also fetch recent document uploads as fallback
+      const { data: docData, error: docError } = await supabase
         .from('documents')
         .select(`
           id,
@@ -37,25 +48,39 @@ export const NotificationDropdown = () => {
           profiles!documents_submitted_by_fkey (name)
         `)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(5);
       
-      if (error) throw error;
+      if (docError) throw docError;
       
-      if (data) {
-        // Transform the data to match the Notification type
-        const notificationData: Notification[] = data.map((doc) => ({
+      // Combine both notification sources
+      const notificationsList: Notification[] = [
+        ...(notifData || []).map((notif: any) => ({
+          id: notif.id,
+          user_id: notif.user_id,
+          message: notif.message,
+          created_at: notif.created_at,
+          read: notif.read,
+          type: notif.type || 'GENERAL',
+          reference_id: notif.reference_id || notif.related_document_id || ''
+        })),
+        ...(docData || []).map((doc) => ({
           id: doc.id,
           user_id: doc.submitted_by,
-          message: `${doc.profiles?.name || 'Unknown user'} uploaded a "${doc.title}" document (ID: ${doc.id})`,
+          message: `${doc.profiles?.name || 'Unknown user'} uploaded "${doc.title}"`,
           created_at: doc.created_at,
           read: false,
           type: 'DOCUMENT_UPLOAD',
           reference_id: doc.id
-        }));
-        
-        setNotifications(notificationData);
-        setUnreadCount(notificationData.length);
-      }
+        }))
+      ];
+      
+      // Sort by created_at and take the most recent 10
+      const sortedNotifications = notificationsList
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 10);
+      
+      setNotifications(sortedNotifications);
+      setUnreadCount(sortedNotifications.filter(n => !n.read).length);
     } catch (error: any) {
       console.error("Error fetching notifications:", error);
       toast({
@@ -71,21 +96,28 @@ export const NotificationDropdown = () => {
   useEffect(() => {
     fetchNotifications();
     
-    // Subscribe to document changes
-    const channel = supabase
+    // Subscribe to both document changes and notification changes
+    const documentsChannel = supabase
       .channel('public:documents')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'documents' },
-        (payload) => {
-          // When a new document is inserted, refresh the notifications
-          fetchNotifications();
-        }
+        () => fetchNotifications()
+      )
+      .subscribe();
+    
+    const notificationsChannel = supabase
+      .channel('public:notifications')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications' },
+        () => fetchNotifications()
       )
       .subscribe();
       
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(documentsChannel);
+      supabase.removeChannel(notificationsChannel);
     };
   }, [user]);
   
