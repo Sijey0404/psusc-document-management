@@ -113,6 +113,11 @@ export const NotificationDropdown = () => {
         { event: 'INSERT', schema: 'public', table: 'notifications' },
         () => fetchNotifications()
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notifications' },
+        () => fetchNotifications()
+      )
       .subscribe();
       
     return () => {
@@ -121,9 +126,35 @@ export const NotificationDropdown = () => {
     };
   }, [user]);
   
-  const markAllAsRead = () => {
-    setUnreadCount(0);
-    // In a real implementation, you might want to update a notifications table in the database
+  const markAllAsRead = async () => {
+    if (!user) return;
+    
+    try {
+      // Update all unread notifications for this user to read
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+      
+      toast({
+        title: "Success",
+        description: "All notifications marked as read",
+      });
+    } catch (error: any) {
+      console.error("Error marking notifications as read:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark notifications as read",
+        variant: "destructive",
+      });
+    }
   };
 
   // Only render for admin users
