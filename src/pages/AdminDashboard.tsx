@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { FileText, CheckCircle, XCircle, Clock, Users } from "lucide-react";
+import { FileText, CheckCircle, XCircle, Clock, Users, Award, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,6 +25,12 @@ const AdminDashboard = () => {
     totalDocuments: 0,
     totalUsers: 0,
     approvalRate: 0,
+  });
+  const [submissionStats, setSubmissionStats] = useState({
+    total_submissions: 0,
+    on_time_submissions: 0,
+    late_submissions: 0,
+    on_time_percentage: 0,
   });
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -136,6 +142,70 @@ const AdminDashboard = () => {
           
           setRecentSubmissions(formattedSubmissions);
         }
+
+        // Fetch faculty ratings for submission statistics
+        const { data: instructorProfiles, error: profilesError } = await supabase
+          .from('profiles' as any)
+          .select('id')
+          .eq('position', 'INSTRUCTOR');
+        
+        if (!profilesError && instructorProfiles && instructorProfiles.length > 0) {
+          const instructorIds = instructorProfiles.map((p: any) => p.id);
+          
+          const { data: ratingsData, error: ratingsError } = await supabase
+            .from('faculty_ratings' as any)
+            .select('*');
+          
+          if (!ratingsError && ratingsData) {
+            const ratings = (ratingsData as any[]).filter((r: any) => instructorIds.includes(r.faculty_id));
+            
+            // Fetch document categories to get deadlines
+            const docIds = Array.from(new Set(ratings.map(r => r.document_id))).filter(Boolean);
+            if (docIds.length > 0) {
+              const { data: docs, error: docsError } = await supabase
+                .from('documents' as any)
+                .select('id, category_id, document_categories(deadline)')
+                .in('id', docIds);
+              
+              if (!docsError && docs) {
+                const dMap: Record<string, string> = {};
+                (docs as any[]).forEach(d => {
+                  if (d.document_categories?.deadline) {
+                    dMap[d.id] = d.document_categories.deadline;
+                  }
+                });
+                
+                // Recalculate is_on_time based on actual category deadline
+                const updatedRatings = ratings.map((rating: any) => {
+                  const categoryDeadline = dMap[rating.document_id];
+                  if (categoryDeadline) {
+                    const submittedDate = new Date(rating.submitted_at);
+                    const deadlineDate = new Date(categoryDeadline);
+                    return {
+                      ...rating,
+                      is_on_time: submittedDate <= deadlineDate
+                    };
+                  }
+                  return rating;
+                });
+                
+                const totalSubmissions = updatedRatings.length;
+                const onTimeSubmissions = updatedRatings.filter((r: any) => r.is_on_time).length;
+                const lateSubmissions = totalSubmissions - onTimeSubmissions;
+                const onTimePercentage = totalSubmissions > 0 
+                  ? Math.round((onTimeSubmissions / totalSubmissions) * 100) 
+                  : 0;
+                
+                setSubmissionStats({
+                  total_submissions: totalSubmissions,
+                  on_time_submissions: onTimeSubmissions,
+                  late_submissions: lateSubmissions,
+                  on_time_percentage: onTimePercentage
+                });
+              }
+            }
+          }
+        }
       } catch (error: any) {
         console.error("Error fetching dashboard data:", error);
         toast({
@@ -169,6 +239,53 @@ const AdminDashboard = () => {
         >
           <h1 className="text-2xl font-bold mb-1">Admin Dashboard</h1>
           <p className="text-muted-foreground mb-4 text-sm">Monitor documents and system metrics</p>
+        </motion.div>
+
+        {/* Submission Ratings */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          <h2 className="text-lg font-semibold mb-3">Submission Ratings</h2>
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
+                <Award className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{submissionStats.total_submissions}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">On Time</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{submissionStats.on_time_submissions}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Late</CardTitle>
+                <Clock className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{submissionStats.late_submissions}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">On Time Rate</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{submissionStats.on_time_percentage}%</div>
+              </CardContent>
+            </Card>
+          </div>
         </motion.div>
 
         {/* Summary stats grid */}
