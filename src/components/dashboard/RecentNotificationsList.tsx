@@ -19,7 +19,7 @@ export const RecentNotificationsList = ({ notifications, loading, inCard = true 
       navigate(`/account-confirmation`);
     } else if (notification.type === 'ACCOUNT_RECOVERY') {
       navigate(`/account-recovery`);
-    } else if (notification.type.includes('FOLDER') || notification.message.includes('folder')) {
+    } else if (notification.type?.includes('FOLDER') || notification.message?.includes('folder')) {
       navigate(`/faculty-folders?folder=${notification.reference_id}`);
     } else if (notification.reference_id) {
       navigate(`/documents/${notification.reference_id}`);
@@ -55,7 +55,7 @@ export const RecentNotificationsList = ({ notifications, loading, inCard = true 
                     <Bell className="h-8 w-8 text-green-500" />
                   ) : notification.type === 'ACCOUNT_RECOVERY' ? (
                     <Bell className="h-8 w-8 text-orange-500" />
-                  ) : notification.type.includes('FOLDER') || notification.message.includes('folder') ? (
+                  ) : notification.type?.includes('FOLDER') || notification.message?.includes('folder') ? (
                     <Folder className="h-8 w-8 text-green-500" />
                   ) : (
                     <Bell className="h-8 w-8 text-muted-foreground" />
