@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,15 +24,14 @@ export function LoadingScreen({ message = "Loading...", className }: LoadingScre
         transition={{ delay: 0.2 }}
         className="flex flex-col items-center"
       >
-        <img 
-          src="/lovable-uploads/7e798f9c-5e5c-4155-8e58-d487fb7288a9.png" 
-          alt="PSU Logo" 
-          className="h-16 w-auto mb-8" 
-        />
-        
-        <div className="relative flex items-center justify-center mb-4">
-          <div className="absolute border-t-2 border-primary h-12 w-12 rounded-full animate-spin"></div>
-          <div className="absolute border-primary border-2 h-12 w-12 rounded-full opacity-25"></div>
+        <div className="relative flex items-center justify-center mb-4 w-20 h-20">
+          <div className="absolute border-t-2 border-primary h-20 w-20 rounded-full animate-spin z-10"></div>
+          <div className="absolute border-primary border-2 h-20 w-20 rounded-full opacity-25 z-10"></div>
+          <img 
+            src="/lovable-uploads/7e798f9c-5e5c-4155-8e58-d487fb7288a9.png" 
+            alt="PSU Logo" 
+            className="h-12 w-auto" 
+          />
         </div>
         
         <p className="text-lg font-medium text-center">{message}</p>
