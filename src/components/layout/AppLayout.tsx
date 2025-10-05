@@ -10,6 +10,16 @@ import { useAuth } from "@/context/AuthContext";
 import { NotificationDropdown } from "@/components/dashboard/NotificationDropdown";
 import { FacultyNotificationDropdown } from "@/components/dashboard/FacultyNotificationDropdown";
 import { motion } from "framer-motion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export type AppLayoutProps = {
   children: ReactNode;
@@ -42,6 +52,7 @@ export const AppLayout = ({
     signOut
   } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     // Get the dark mode preference from localStorage on initial load
     const savedMode = localStorage.getItem('darkMode');
@@ -73,6 +84,7 @@ export const AppLayout = ({
 
   const handleLogout = async () => {
     setIsLoading(true);
+    setShowLogoutDialog(false);
     try {
       await signOut();
       toast({
@@ -151,7 +163,7 @@ export const AppLayout = ({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={handleLogout} 
+                  onClick={() => setShowLogoutDialog(true)} 
                   disabled={isLoading} 
                   className="relative overflow-hidden hover:bg-muted transition-colors duration-200 h-9 w-9"
                 >
@@ -163,6 +175,21 @@ export const AppLayout = ({
                   )}
                 </Button>
               </motion.div>
+              
+              <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to log out of your account?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>No</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleLogout}>Yes</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </header>
           <main className="flex-1 p-3 md:p-4 lg:p-5 overflow-auto">
