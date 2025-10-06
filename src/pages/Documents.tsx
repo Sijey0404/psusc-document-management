@@ -65,7 +65,7 @@ const Documents = () => {
           profiles: doc.profiles,
           reviewer: doc.reviewer,
           department: doc.department,
-          document_categories: doc.category as { name: string; semester?: string; deadline?: string } | null
+          document_categories: doc.category
         }));
         
         setDocuments(formattedDocuments);
@@ -105,17 +105,7 @@ const Documents = () => {
     setFilteredDocuments(filtered);
   }, [searchQuery, documents, isPendingOnly]);
 
-  const handleFilterChange = ({ 
-    departmentId, 
-    categoryId, 
-    semester, 
-    schoolYear 
-  }: { 
-    departmentId?: string; 
-    categoryId?: string;
-    semester?: string;
-    schoolYear?: string;
-  }) => {
+  const handleFilterChange = ({ departmentId, categoryId, semester, deadline }: { departmentId?: string, categoryId?: string, semester?: string, deadline?: string }) => {
     let filtered = [...documents];
     
     if (departmentId && departmentId !== 'all-departments') {
@@ -127,20 +117,11 @@ const Documents = () => {
     }
     
     if (semester && semester !== 'all-semesters') {
-      filtered = filtered.filter(doc => {
-        const category = doc.document_categories as { name: string; semester?: string; deadline?: string } | null;
-        return category?.semester === semester;
-      });
+      filtered = filtered.filter(doc => doc.document_categories?.semester === semester);
     }
     
-    if (schoolYear && schoolYear !== 'all-years') {
-      filtered = filtered.filter(doc => {
-        const category = doc.document_categories as { name: string; semester?: string; deadline?: string } | null;
-        if (!category?.deadline) return false;
-        const year = new Date(category.deadline).getFullYear();
-        const docSchoolYear = `${year}-${year + 1}`;
-        return docSchoolYear === schoolYear;
-      });
+    if (deadline && deadline !== 'all-deadlines') {
+      filtered = filtered.filter(doc => doc.document_categories?.deadline === deadline);
     }
     
     // Apply pending filter if enabled
