@@ -64,14 +64,14 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Check if user is archived
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('archived')
       .eq('id', user.id)
       .maybeSingle();
 
     if (profileError) {
-      console.error("Error checking user profile:", profileError);
+      console.error("Error fetching profile:", profileError);
       return new Response(
         JSON.stringify({ error: "Failed to verify user status" }),
         {
@@ -81,9 +81,9 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    if (userProfile?.archived) {
+    if (profileData?.archived === true) {
       return new Response(
-        JSON.stringify({ error: "This account has been archived and cannot access password recovery" }),
+        JSON.stringify({ error: "This account has been archived and cannot recover password" }),
         {
           status: 403,
           headers: { "Content-Type": "application/json", ...corsHeaders },
