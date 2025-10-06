@@ -63,6 +63,34 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Check if user is archived
+    const { data: userProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('archived')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("Error checking user profile:", profileError);
+      return new Response(
+        JSON.stringify({ error: "Failed to verify user status" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    if (userProfile?.archived) {
+      return new Response(
+        JSON.stringify({ error: "This account has been archived and cannot access password recovery" }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     

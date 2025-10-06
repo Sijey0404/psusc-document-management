@@ -172,11 +172,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         const { data: userProfile, error: profileError } = await supabase
           .from('profiles')
-          .select('role, password_change_required')
+          .select('role, password_change_required, archived')
           .eq('id', data.user.id)
           .maybeSingle();
         
         if (profileError) throw profileError;
+        
+        // Check if user is archived
+        if (userProfile?.archived) {
+          await supabase.auth.signOut();
+          throw new Error("This account has been archived and cannot access the system");
+        }
         
         // Redirect based on role and check if password change required
         if (userProfile) {
