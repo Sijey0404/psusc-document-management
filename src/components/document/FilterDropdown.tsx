@@ -194,14 +194,14 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
 
             <div className="space-y-1">
               <label htmlFor="deadline-filter" className="text-sm font-medium">
-                Year
+                Deadline
               </label>
               <Select value={selectedDeadline} onValueChange={setSelectedDeadline}>
                 <SelectTrigger id="deadline-filter" className="w-full">
-                  <SelectValue placeholder="Select a year" />
+                  <SelectValue placeholder="Select a deadline" />
                 </SelectTrigger>
                 <ScrollableSelectContent>
-                  <SelectItem value="all-deadlines">All Years</SelectItem>
+                  <SelectItem value="all-deadlines">All Deadlines</SelectItem>
                   {deadlines.map((deadline) => (
                     <SelectItem key={deadline} value={deadline}>
                       {deadline}
