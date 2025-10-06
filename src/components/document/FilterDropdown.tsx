@@ -1,4 +1,3 @@
-
 import { useState, useEffect, ReactNode } from "react";
 import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FilterDropdownProps {
-  onFilterChange: (filters: { departmentId?: string; categoryId?: string }) => void;
+  onFilterChange: (filters: { departmentId?: string; categoryId?: string; semester?: string; deadline?: string }) => void;
 }
 
 // Wrap ScrollArea inside SelectContent for scrollable dropdown menus
@@ -28,9 +27,13 @@ const ScrollableSelectContent = ({ children }: { children: ReactNode }) => (
 
 export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; semester?: string; deadline?: string }[]>([]);
+  const [semesters, setSemesters] = useState<string[]>([]);
+  const [deadlines, setDeadlines] = useState<string[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string | undefined>(undefined);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+  const [selectedSemester, setSelectedSemester] = useState<string | undefined>(undefined);
+  const [selectedDeadline, setSelectedDeadline] = useState<string | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -55,14 +58,20 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
           setDepartments(sortedDepartments);
         }
 
-        // Fetch categories
+        // Fetch categories with semester and deadline
         const { data: categoryData, error: catError } = await supabase
           .from('document_categories')
-          .select('id, name');
+          .select('id, name, semester, deadline');
 
         if (catError) throw catError;
         if (categoryData) {
           setCategories(categoryData);
+          
+          // Extract unique semesters and deadlines
+          const uniqueSemesters = [...new Set(categoryData.map(cat => cat.semester).filter(Boolean))];
+          const uniqueDeadlines = [...new Set(categoryData.map(cat => cat.deadline).filter(Boolean))];
+          setSemesters(uniqueSemesters as string[]);
+          setDeadlines(uniqueDeadlines as string[]);
         }
       } catch (error) {
         console.error("Error fetching filter data:", error);
@@ -78,12 +87,16 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
     onFilterChange({
       departmentId: selectedDepartment,
       categoryId: selectedCategory,
+      semester: selectedSemester,
+      deadline: selectedDeadline,
     });
-  }, [selectedDepartment, selectedCategory, onFilterChange]);
+  }, [selectedDepartment, selectedCategory, selectedSemester, selectedDeadline, onFilterChange]);
 
   const handleClearFilters = () => {
     setSelectedDepartment(undefined);
     setSelectedCategory(undefined);
+    setSelectedSemester(undefined);
+    setSelectedDeadline(undefined);
   };
 
   return (
@@ -97,9 +110,9 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
         >
           <Filter className="h-4 w-4" />
           <span>Filter</span>
-          {(selectedDepartment || selectedCategory) && (
+          {(selectedDepartment || selectedCategory || selectedSemester || selectedDeadline) && (
             <span className="flex items-center justify-center w-5 h-5 ml-1 text-xs bg-primary text-primary-foreground rounded-full">
-              {(selectedDepartment ? 1 : 0) + (selectedCategory ? 1 : 0)}
+              {(selectedDepartment ? 1 : 0) + (selectedCategory ? 1 : 0) + (selectedSemester ? 1 : 0) + (selectedDeadline ? 1 : 0)}
             </span>
           )}
         </Button>
@@ -108,7 +121,7 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-medium">Filter Documents</h3>
-            {(selectedDepartment || selectedCategory) && (
+            {(selectedDepartment || selectedCategory || selectedSemester || selectedDeadline) && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -154,6 +167,44 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
+                    </SelectItem>
+                  ))}
+                </ScrollableSelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="semester-filter" className="text-sm font-medium">
+                Semester
+              </label>
+              <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+                <SelectTrigger id="semester-filter" className="w-full">
+                  <SelectValue placeholder="Select a semester" />
+                </SelectTrigger>
+                <ScrollableSelectContent>
+                  <SelectItem value="all-semesters">All Semesters</SelectItem>
+                  {semesters.map((semester) => (
+                    <SelectItem key={semester} value={semester}>
+                      {semester}
+                    </SelectItem>
+                  ))}
+                </ScrollableSelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="deadline-filter" className="text-sm font-medium">
+                Deadline
+              </label>
+              <Select value={selectedDeadline} onValueChange={setSelectedDeadline}>
+                <SelectTrigger id="deadline-filter" className="w-full">
+                  <SelectValue placeholder="Select a deadline" />
+                </SelectTrigger>
+                <ScrollableSelectContent>
+                  <SelectItem value="all-deadlines">All Deadlines</SelectItem>
+                  {deadlines.map((deadline) => (
+                    <SelectItem key={deadline} value={deadline}>
+                      {deadline}
                     </SelectItem>
                   ))}
                 </ScrollableSelectContent>
