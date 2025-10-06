@@ -34,7 +34,7 @@ export type Document = {
   profiles?: { name: string } | null;  // Join from profiles table
   reviewer?: { name: string } | null;  // Join for reviewer name
   department?: { name: string } | null; // Join for department name
-  document_categories?: { name: string } | null; // Join for category name
+  document_categories?: { name: string; semester?: string; deadline?: string } | null; // Join for category name
 };
 
 export type DocumentSubmission = {
