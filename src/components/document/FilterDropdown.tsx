@@ -67,27 +67,11 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
         if (categoryData) {
           setCategories(categoryData);
           
-          // Extract unique semesters and deadlines (year ranges)
+          // Extract unique semesters and deadlines
           const uniqueSemesters = [...new Set(categoryData.map(cat => cat.semester).filter(Boolean))];
-          
-          // Extract year ranges from deadline field (e.g., "2025-2026")
-          const yearRanges = categoryData
-            .map(cat => cat.deadline)
-            .filter(Boolean)
-            .map(deadline => {
-              // Extract year pattern like "2025-2026" or "2025" from deadline string
-              const yearMatch = deadline?.match(/(\d{4})(?:-(\d{4}))?/);
-              if (yearMatch) {
-                return yearMatch[2] ? `${yearMatch[1]}-${yearMatch[2]}` : yearMatch[1];
-              }
-              return null;
-            })
-            .filter(Boolean);
-          
-          const uniqueYears = [...new Set(yearRanges)].sort();
-          
+          const uniqueDeadlines = [...new Set(categoryData.map(cat => cat.deadline).filter(Boolean))];
           setSemesters(uniqueSemesters as string[]);
-          setDeadlines(uniqueYears as string[]);
+          setDeadlines(uniqueDeadlines as string[]);
         }
       } catch (error) {
         console.error("Error fetching filter data:", error);
