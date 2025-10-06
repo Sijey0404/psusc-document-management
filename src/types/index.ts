@@ -31,10 +31,14 @@ export type Document = {
   department_id: string;
   created_at: string;
   updated_at: string;
-  profiles?: { name: string } | null;  // Join from profiles table
-  reviewer?: { name: string } | null;  // Join for reviewer name
-  department?: { name: string } | null; // Join for department name
-  document_categories?: { name: string; semester?: string; deadline?: string } | null; // Join for category name
+  profiles?: { name: string } | null;
+  reviewer?: { name: string } | null;
+  department?: { name: string } | null;
+  document_categories?: { 
+    name: string;
+    semester?: string;
+    deadline?: string;
+  } | null;
 };
 
 export type DocumentSubmission = {
