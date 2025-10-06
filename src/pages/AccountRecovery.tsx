@@ -171,8 +171,8 @@ const AccountRecovery = () => {
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Account Recovery</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-foreground">Account Recovery</h1>
+          <p className="mt-2 text-muted-foreground">
             Manage password reset requests from users
           </p>
         </div>
@@ -180,9 +180,9 @@ const AccountRecovery = () => {
         {requests.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <User className="h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Recovery Requests</h3>
-              <p className="text-gray-500 text-center">
+              <User className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No Recovery Requests</h3>
+              <p className="text-muted-foreground text-center">
                 No users have requested password recovery at this time.
               </p>
             </CardContent>
@@ -194,7 +194,7 @@ const AccountRecovery = () => {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <User className="h-5 w-5 text-gray-500" />
+                      <User className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <CardTitle className="text-lg">
                           {request.user_profile?.name || 'Unknown User'}
@@ -217,21 +217,21 @@ const AccountRecovery = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm font-medium text-gray-500">Position</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">Position</Label>
                       <p className="text-sm">{request.user_profile?.position || 'Not specified'}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-500">Requested</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">Requested</Label>
                       <div className="flex items-center space-x-2 text-sm">
-                        <Clock className="h-4 w-4 text-gray-400" />
+                        <Clock className="h-4 w-4 text-muted-foreground" />
                         <span>{format(new Date(request.requested_at), 'MMM dd, yyyy HH:mm')}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <Label className="text-sm font-medium text-gray-700 flex items-center">
+                      <Label className="text-sm font-medium text-foreground flex items-center">
                         <Key className="h-4 w-4 mr-2" />
                         Verification Code
                       </Label>
@@ -249,10 +249,10 @@ const AccountRecovery = () => {
                         {copiedOTP === request.id ? 'Copied' : 'Copy'}
                       </Button>
                     </div>
-                    <div className="font-mono text-2xl font-bold tracking-wider text-center py-2 bg-white border rounded">
+                    <div className="font-mono text-2xl font-bold tracking-wider text-center py-2 bg-background border rounded">
                       {request.otp_code}
                     </div>
-                    <p className="text-xs text-gray-500 text-center mt-2">
+                    <p className="text-xs text-muted-foreground text-center mt-2">
                       Expires: {format(new Date(request.expires_at), 'MMM dd, yyyy HH:mm')}
                     </p>
                   </div>
@@ -276,7 +276,7 @@ const AccountRecovery = () => {
                   )}
 
                   {request.handled_at && (
-                    <div className="text-xs text-gray-500 border-t pt-2">
+                    <div className="text-xs text-muted-foreground border-t pt-2">
                       Handled on {format(new Date(request.handled_at), 'MMM dd, yyyy HH:mm')}
                     </div>
                   )}
