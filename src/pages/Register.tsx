@@ -14,8 +14,6 @@ import { useEffect } from "react";
 const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [position, setPosition] = useState("INSTRUCTOR");
   const [departmentId, setDepartmentId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -60,12 +58,32 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Email validation
+    // Validation
+    if (!name.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter your full name",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       toast({
         title: "Error",
         description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    if (!departmentId) {
+      toast({
+        title: "Error",
+        description: "Please select a department",
         variant: "destructive",
       });
       setLoading(false);
@@ -108,7 +126,7 @@ const Register = () => {
         name,
         email,
         position,
-        department_id: departmentId || departments[0]?.id
+        department_id: departmentId
       });
       
       toast({
@@ -119,8 +137,6 @@ const Register = () => {
       // Clear form
       setName("");
       setEmail("");
-      setPassword("");
-      setConfirmPassword("");
       setPosition("INSTRUCTOR");
       setDepartmentId(departments[0]?.id || "");
     } catch (error: any) {
