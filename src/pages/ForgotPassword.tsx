@@ -1,19 +1,44 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Loader2, ArrowLeft, Mail, Key } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Key, Lock } from "lucide-react";
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+// Password form schema
+const passwordSchema = z.object({
+  password: z.string().min(8, "Password must be at least 8 characters").refine(password => /[A-Z]/.test(password), "Password must contain at least one uppercase letter").refine(password => /[0-9]/.test(password), "Password must contain at least one number"),
+  confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"]
+});
+
+type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
   const { toast } = useAuth();
+  const navigate = useNavigate();
+
+  const form = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: ""
+    }
+  });
 
   const handleSendOTP = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -64,24 +89,12 @@ const ForgotPassword = () => {
         throw new Error(data.error);
       }
       
-      if (data.success && data.access_token) {
-        // Set the session with the tokens received from the edge function
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token
-        });
-        
-        if (sessionError) {
-          console.error("Error setting session:", sessionError);
-          throw sessionError;
-        }
-        
+      if (data.success) {
+        setOtpVerified(true);
         toast({
           title: "Verification Successful",
-          description: "You will now be prompted to change your password",
+          description: "Please set your new password",
         });
-        
-        // The AuthContext will handle redirecting to password change dialog
         return;
       }
     } catch (error: any) {
@@ -89,6 +102,38 @@ const ForgotPassword = () => {
       toast({
         title: "Verification Failed",
         description: error.message || "Invalid or expired OTP",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async (values: PasswordFormValues) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-user-password', {
+        body: { email, password: values.password }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Password Updated",
+        description: "Your password has been successfully updated. You can now login with your new password.",
+      });
+
+      // Navigate to login page
+      navigate('/login');
+    } catch (error: any) {
+      console.error("Error updating password:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update password",
         variant: "destructive",
       });
     } finally {
@@ -123,10 +168,67 @@ const ForgotPassword = () => {
             </div>
             
             <p className="text-gray-600 text-center mb-6">
-              {otpSent ? "Enter the verification code provided by the administrator" : "Enter your email to request account recovery from an administrator"}
+              {otpVerified ? "Create your new password" : otpSent ? "Enter the verification code provided by the administrator" : "Enter your email to request account recovery from an administrator"}
             </p>
 
-            {!otpSent ? (
+            {otpVerified ? (
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handlePasswordReset)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={email} 
+                      disabled 
+                      className="bg-gray-50 border-gray-200"
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button type="submit" disabled={isLoading} className="w-full bg-royal hover:bg-royal-dark h-12">
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating Password...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="mr-2 h-5 w-5" />
+                        Update Password
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            ) : !otpSent ? (
               <form onSubmit={handleSendOTP} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -196,10 +298,10 @@ const ForgotPassword = () => {
                          Verifying...
                        </>
                      ) : (
-                       <>
-                         <Key className="mr-2 h-5 w-5" />
-                         Login via OTP
-                       </>
+                        <>
+                          <Key className="mr-2 h-5 w-5" />
+                          Verify OTP
+                        </>
                      )}
                    </Button>
                    
