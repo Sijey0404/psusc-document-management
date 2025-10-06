@@ -39,6 +39,8 @@ export interface Document {
   } | null;
   document_categories?: {
     name: string;
+    semester?: string;
+    deadline?: string;
   } | null;
 }
 
