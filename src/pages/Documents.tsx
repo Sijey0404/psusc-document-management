@@ -51,7 +51,7 @@ const Documents = () => {
           profiles!submitted_by (name),
           reviewer:profiles!reviewed_by (name),
           department:departments!documents_department_id_fkey (name),
-          category:document_categories!documents_category_id_fkey (name)
+          category:document_categories!documents_category_id_fkey (name, semester, deadline)
         `)
         .order('created_at', { ascending: false });
       
@@ -105,7 +105,7 @@ const Documents = () => {
     setFilteredDocuments(filtered);
   }, [searchQuery, documents, isPendingOnly]);
 
-  const handleFilterChange = ({ departmentId, categoryId }: { departmentId?: string, categoryId?: string }) => {
+  const handleFilterChange = ({ departmentId, categoryId, semester, deadline }: { departmentId?: string, categoryId?: string, semester?: string, deadline?: string }) => {
     let filtered = [...documents];
     
     if (departmentId && departmentId !== 'all-departments') {
@@ -114,6 +114,14 @@ const Documents = () => {
     
     if (categoryId && categoryId !== 'all-categories') {
       filtered = filtered.filter(doc => doc.category_id === categoryId);
+    }
+    
+    if (semester && semester !== 'all-semesters') {
+      filtered = filtered.filter(doc => doc.document_categories?.semester === semester);
+    }
+    
+    if (deadline && deadline !== 'all-deadlines') {
+      filtered = filtered.filter(doc => doc.document_categories?.deadline === deadline);
     }
     
     // Apply pending filter if enabled
