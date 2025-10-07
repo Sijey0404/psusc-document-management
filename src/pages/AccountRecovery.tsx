@@ -125,7 +125,7 @@ const AccountRecovery = () => {
   if (loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-64 dark:bg-black">
+        <div className="flex items-center justify-center h-64 bg-white dark:bg-black">
           <Loader2 className="h-8 w-8 animate-spin text-gray-900 dark:text-gray-100" />
         </div>
       </AppLayout>
@@ -143,7 +143,7 @@ const AccountRecovery = () => {
         </div>
 
         {requests.length === 0 ? (
-          <Card className="bg-white dark:bg-neutral-900 border dark:border-gray-800">
+          <Card className="bg-white dark:bg-neutral-950 border border-gray-200 dark:border-gray-800">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <User className="h-12 w-12 text-gray-400 dark:text-gray-500 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
@@ -159,7 +159,7 @@ const AccountRecovery = () => {
             {requests.map((request) => (
               <Card
                 key={request.id}
-                className="relative bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-800 shadow-sm"
+                className="relative bg-white dark:bg-neutral-950 border border-gray-200 dark:border-gray-800 shadow-sm"
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -207,7 +207,7 @@ const AccountRecovery = () => {
                     </div>
                   </div>
 
-                  {/* ✅ FULL DARK-MODE COMPATIBLE OTP SECTION */}
+                  {/* ✅ FULL BLACK DARK MODE OTP BOX */}
                   <div className="bg-gray-50 dark:bg-black p-4 rounded-lg border border-gray-200 dark:border-gray-800">
                     <div className="flex items-center justify-between mb-2">
                       <Label className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center">
@@ -218,7 +218,7 @@ const AccountRecovery = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => copyOTPToClipboard(request.otp_code, request.id)}
-                        className="h-8 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                        className="h-8 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-neutral-900"
                       >
                         {copiedOTP === request.id ? (
                           <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -231,7 +231,7 @@ const AccountRecovery = () => {
 
                     <div
                       className="font-mono text-2xl font-bold tracking-wider text-center py-2 
-                                 bg-white dark:bg-black 
+                                 bg-white dark:bg-neutral-900 
                                  text-gray-900 dark:text-white 
                                  border border-gray-200 dark:border-gray-800 rounded"
                     >
