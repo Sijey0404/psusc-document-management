@@ -1,5 +1,6 @@
+
 import { useState, useEffect, ReactNode } from "react";
-import { Filter, X } from "lucide-react";
+import { Filter, X, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -9,11 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface FilterDropdownProps {
-  onFilterChange: (filters: { departmentId?: string; categoryId?: string; semester?: string; deadline?: string }) => void;
+  onFilterChange: (filters: { departmentId?: string; categoryId?: string; semester?: string; schoolYear?: string }) => void;
 }
 
 // Wrap ScrollArea inside SelectContent for scrollable dropdown menus
@@ -29,12 +33,12 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string; semester?: string; deadline?: string }[]>([]);
   const [semesters, setSemesters] = useState<string[]>([]);
-  const [deadlines, setDeadlines] = useState<string[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string | undefined>(undefined);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [selectedSemester, setSelectedSemester] = useState<string | undefined>(undefined);
-  const [selectedDeadline, setSelectedDeadline] = useState<string | undefined>(undefined);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState<Date | undefined>(undefined);
   const [open, setOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,11 +71,9 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
         if (categoryData) {
           setCategories(categoryData);
           
-          // Extract unique semesters and deadlines
+          // Extract unique semesters
           const uniqueSemesters = [...new Set(categoryData.map(cat => cat.semester).filter(Boolean))];
-          const uniqueDeadlines = [...new Set(categoryData.map(cat => cat.deadline).filter(Boolean))];
           setSemesters(uniqueSemesters as string[]);
-          setDeadlines(uniqueDeadlines as string[]);
         }
       } catch (error) {
         console.error("Error fetching filter data:", error);
@@ -84,19 +86,20 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
   }, []);
 
   useEffect(() => {
+    const schoolYear = selectedSchoolYear ? selectedSchoolYear.getFullYear().toString() : undefined;
     onFilterChange({
       departmentId: selectedDepartment,
       categoryId: selectedCategory,
       semester: selectedSemester,
-      deadline: selectedDeadline,
+      schoolYear: schoolYear,
     });
-  }, [selectedDepartment, selectedCategory, selectedSemester, selectedDeadline, onFilterChange]);
+  }, [selectedDepartment, selectedCategory, selectedSemester, selectedSchoolYear, onFilterChange]);
 
   const handleClearFilters = () => {
     setSelectedDepartment(undefined);
     setSelectedCategory(undefined);
     setSelectedSemester(undefined);
-    setSelectedDeadline(undefined);
+    setSelectedSchoolYear(undefined);
   };
 
   return (
@@ -110,9 +113,9 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
         >
           <Filter className="h-4 w-4" />
           <span>Filter</span>
-          {(selectedDepartment || selectedCategory || selectedSemester || selectedDeadline) && (
+          {(selectedDepartment || selectedCategory || selectedSemester || selectedSchoolYear) && (
             <span className="flex items-center justify-center w-5 h-5 ml-1 text-xs bg-primary text-primary-foreground rounded-full">
-              {(selectedDepartment ? 1 : 0) + (selectedCategory ? 1 : 0) + (selectedSemester ? 1 : 0) + (selectedDeadline ? 1 : 0)}
+              {(selectedDepartment ? 1 : 0) + (selectedCategory ? 1 : 0) + (selectedSemester ? 1 : 0) + (selectedSchoolYear ? 1 : 0)}
             </span>
           )}
         </Button>
@@ -121,7 +124,7 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-medium">Filter Documents</h3>
-            {(selectedDepartment || selectedCategory || selectedSemester || selectedDeadline) && (
+            {(selectedDepartment || selectedCategory || selectedSemester || selectedSchoolYear) && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -193,22 +196,36 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="deadline-filter" className="text-sm font-medium">
-                Deadline
+              <label htmlFor="school-year-filter" className="text-sm font-medium">
+                School Year
               </label>
-              <Select value={selectedDeadline} onValueChange={setSelectedDeadline}>
-                <SelectTrigger id="deadline-filter" className="w-full">
-                  <SelectValue placeholder="Select a deadline" />
-                </SelectTrigger>
-                <ScrollableSelectContent>
-                  <SelectItem value="all-deadlines">All Deadlines</SelectItem>
-                  {deadlines.map((deadline) => (
-                    <SelectItem key={deadline} value={deadline}>
-                      {deadline}
-                    </SelectItem>
-                  ))}
-                </ScrollableSelectContent>
-              </Select>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="school-year-filter"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedSchoolYear && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedSchoolYear ? format(selectedSchoolYear, "yyyy") : "Select a year"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedSchoolYear}
+                    onSelect={(date) => {
+                      setSelectedSchoolYear(date);
+                      setCalendarOpen(false);
+                    }}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
