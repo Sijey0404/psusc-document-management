@@ -5,7 +5,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, User, Mail, Clock, Key, Copy, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
@@ -42,26 +41,22 @@ const AccountRecovery = () => {
   const fetchRecoveryRequests = async () => {
     try {
       setLoading(true);
-      
-      // Fetch recovery requests
       const { data: recoveryData, error } = await supabase
-        .from('account_recovery_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("account_recovery_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Fetch user profiles for each request
       if (recoveryData && recoveryData.length > 0) {
         const userIds = recoveryData.map(req => req.user_id).filter(Boolean);
-        
+
         if (userIds.length > 0) {
           const { data: profilesData } = await supabase
-            .from('profiles')
-            .select('id, name, position, department_id')
-            .in('id', userIds);
+            .from("profiles")
+            .select("id, name, position, department_id")
+            .in("id", userIds);
 
-          // Combine the data
           const requestsWithProfiles = recoveryData.map(request => ({
             ...request,
             user_profile: profilesData?.find(profile => profile.id === request.user_id),
@@ -70,10 +65,12 @@ const AccountRecovery = () => {
 
           setRequests(requestsWithProfiles);
         } else {
-          setRequests(recoveryData.map(req => ({
-            ...req,
-            status: req.status as 'PENDING' | 'APPROVED' | 'REJECTED' | 'USED'
-          })) as AccountRecoveryRequest[]);
+          setRequests(
+            recoveryData.map(req => ({
+              ...req,
+              status: req.status as 'PENDING' | 'APPROVED' | 'REJECTED' | 'USED',
+            })) as AccountRecoveryRequest[]
+          );
         }
       } else {
         setRequests([]);
@@ -108,42 +105,12 @@ const AccountRecovery = () => {
     }
   };
 
-  const updateRequestStatus = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
-    try {
-      const { error } = await supabase
-        .from('account_recovery_requests')
-        .update({
-          status,
-          handled_by: user?.id,
-          handled_at: new Date().toISOString()
-        })
-        .eq('id', requestId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Status Updated",
-        description: `Request has been ${status.toLowerCase()}`,
-      });
-
-      // Refresh the list
-      fetchRecoveryRequests();
-    } catch (error: any) {
-      console.error("Error updating request status:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update request status",
-        variant: "destructive",
-      });
-    }
-  };
-
   const getStatusBadge = (status: string) => {
     const variants = {
       PENDING: "default",
-      APPROVED: "success", 
+      APPROVED: "success",
       REJECTED: "destructive",
-      USED: "secondary"
+      USED: "secondary",
     } as const;
 
     return (
@@ -153,9 +120,7 @@ const AccountRecovery = () => {
     );
   };
 
-  const isExpired = (expiresAt: string) => {
-    return new Date(expiresAt) < new Date();
-  };
+  const isExpired = (expiresAt: string) => new Date(expiresAt) < new Date();
 
   if (loading) {
     return (
@@ -171,18 +136,20 @@ const AccountRecovery = () => {
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Account Recovery</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Account Recovery</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
             Manage password reset requests from users
           </p>
         </div>
 
         {requests.length === 0 ? (
-          <Card>
+          <Card className="bg-white dark:bg-gray-900 border dark:border-gray-700">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <User className="h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Recovery Requests</h3>
-              <p className="text-gray-500 text-center">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                No Recovery Requests
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 text-center">
                 No users have requested password recovery at this time.
               </p>
             </CardContent>
@@ -190,16 +157,19 @@ const AccountRecovery = () => {
         ) : (
           <div className="grid gap-6">
             {requests.map((request) => (
-              <Card key={request.id} className="relative">
+              <Card
+                key={request.id}
+                className="relative bg-white dark:bg-gray-900 border dark:border-gray-700"
+              >
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <User className="h-5 w-5 text-gray-500" />
+                      <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                       <div>
-                        <CardTitle className="text-lg">
-                          {request.user_profile?.name || 'Unknown User'}
+                        <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
+                          {request.user_profile?.name || "Unknown User"}
                         </CardTitle>
-                        <CardDescription className="flex items-center space-x-2">
+                        <CardDescription className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
                           <Mail className="h-4 w-4" />
                           <span>{request.user_email}</span>
                         </CardDescription>
@@ -217,21 +187,30 @@ const AccountRecovery = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm font-medium text-gray-500">Position</Label>
-                      <p className="text-sm">{request.user_profile?.position || 'Not specified'}</p>
+                      <Label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Position
+                      </Label>
+                      <p className="text-sm text-gray-800 dark:text-gray-200">
+                        {request.user_profile?.position || "Not specified"}
+                      </p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-500">Requested</Label>
-                      <div className="flex items-center space-x-2 text-sm">
-                        <Clock className="h-4 w-4 text-gray-400" />
-                        <span>{format(new Date(request.requested_at), 'MMM dd, yyyy HH:mm')}</span>
+                      <Label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Requested
+                      </Label>
+                      <div className="flex items-center space-x-2 text-sm text-gray-800 dark:text-gray-200">
+                        <Clock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        <span>
+                          {format(new Date(request.requested_at), "MMM dd, yyyy HH:mm")}
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
+                  {/* ✅ FIXED OTP SECTION FOR DARK MODE */}
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2">
-                      <Label className="text-sm font-medium text-gray-700 flex items-center">
+                      <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
                         <Key className="h-4 w-4 mr-2" />
                         Verification Code
                       </Label>
@@ -242,25 +221,32 @@ const AccountRecovery = () => {
                         className="h-8"
                       >
                         {copiedOTP === request.id ? (
-                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                         ) : (
                           <Copy className="h-4 w-4" />
                         )}
-                        {copiedOTP === request.id ? 'Copied' : 'Copy'}
+                        {copiedOTP === request.id ? "Copied" : "Copy"}
                       </Button>
                     </div>
-                    <div className="font-mono text-2xl font-bold tracking-wider text-center py-2 bg-white border rounded">
+
+                    <div
+                      className="font-mono text-2xl font-bold tracking-wider text-center py-2 
+                                 bg-white dark:bg-gray-900 
+                                 text-gray-900 dark:text-gray-100 
+                                 border rounded border-gray-200 dark:border-gray-700"
+                    >
                       {request.otp_code}
                     </div>
-                    <p className="text-xs text-gray-500 text-center mt-2">
-                      Expires: {format(new Date(request.expires_at), 'MMM dd, yyyy HH:mm')}
+
+                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                      Expires: {format(new Date(request.expires_at), "MMM dd, yyyy HH:mm")}
                     </p>
                   </div>
 
-
                   {request.handled_at && (
-                    <div className="text-xs text-gray-500 border-t pt-2">
-                      Handled on {format(new Date(request.handled_at), 'MMM dd, yyyy HH:mm')}
+                    <div className="text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-2">
+                      Handled on{" "}
+                      {format(new Date(request.handled_at), "MMM dd, yyyy HH:mm")}
                     </div>
                   )}
                 </CardContent>
