@@ -1,6 +1,6 @@
 
 import { useState, useEffect, ReactNode } from "react";
-import { Filter, X, CalendarIcon } from "lucide-react";
+import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -10,11 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 interface FilterDropdownProps {
   onFilterChange: (filters: { departmentId?: string; categoryId?: string; semester?: string; schoolYear?: string }) => void;
@@ -36,9 +34,8 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
   const [selectedDepartment, setSelectedDepartment] = useState<string | undefined>(undefined);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [selectedSemester, setSelectedSemester] = useState<string | undefined>(undefined);
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState<Date | undefined>(undefined);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState<string>("");
   const [open, setOpen] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -86,12 +83,11 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
   }, []);
 
   useEffect(() => {
-    const schoolYear = selectedSchoolYear ? selectedSchoolYear.getFullYear().toString() : undefined;
     onFilterChange({
       departmentId: selectedDepartment,
       categoryId: selectedCategory,
       semester: selectedSemester,
-      schoolYear: schoolYear,
+      schoolYear: selectedSchoolYear || undefined,
     });
   }, [selectedDepartment, selectedCategory, selectedSemester, selectedSchoolYear, onFilterChange]);
 
@@ -99,7 +95,7 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
     setSelectedDepartment(undefined);
     setSelectedCategory(undefined);
     setSelectedSemester(undefined);
-    setSelectedSchoolYear(undefined);
+    setSelectedSchoolYear("");
   };
 
   return (
@@ -199,33 +195,16 @@ export const FilterDropdown = ({ onFilterChange }: FilterDropdownProps) => {
               <label htmlFor="school-year-filter" className="text-sm font-medium">
                 School Year
               </label>
-              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="school-year-filter"
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedSchoolYear && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedSchoolYear ? format(selectedSchoolYear, "yyyy") : "Select a year"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedSchoolYear}
-                    onSelect={(date) => {
-                      setSelectedSchoolYear(date);
-                      setCalendarOpen(false);
-                    }}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                id="school-year-filter"
+                type="number"
+                placeholder="Enter year (e.g., 2024)"
+                value={selectedSchoolYear}
+                onChange={(e) => setSelectedSchoolYear(e.target.value)}
+                min="1900"
+                max="2100"
+                className="w-full"
+              />
             </div>
           </div>
         </div>
