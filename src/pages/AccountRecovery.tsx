@@ -125,8 +125,8 @@ const AccountRecovery = () => {
   if (loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="flex items-center justify-center h-64 dark:bg-black">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-900 dark:text-gray-100" />
         </div>
       </AppLayout>
     );
@@ -134,18 +134,18 @@ const AccountRecovery = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 bg-white dark:bg-black min-h-screen p-6 rounded-lg transition-colors duration-300">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Account Recovery</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Account Recovery</h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             Manage password reset requests from users
           </p>
         </div>
 
         {requests.length === 0 ? (
-          <Card className="bg-white dark:bg-gray-900 border dark:border-gray-700">
+          <Card className="bg-white dark:bg-neutral-900 border dark:border-gray-800">
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <User className="h-12 w-12 text-gray-400 mb-4" />
+              <User className="h-12 w-12 text-gray-400 dark:text-gray-500 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                 No Recovery Requests
               </h3>
@@ -159,7 +159,7 @@ const AccountRecovery = () => {
             {requests.map((request) => (
               <Card
                 key={request.id}
-                className="relative bg-white dark:bg-gray-900 border dark:border-gray-700"
+                className="relative bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-800 shadow-sm"
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -207,18 +207,18 @@ const AccountRecovery = () => {
                     </div>
                   </div>
 
-                  {/* ✅ FIXED OTP SECTION FOR DARK MODE */}
-                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border dark:border-gray-700">
+                  {/* ✅ FULL DARK-MODE COMPATIBLE OTP SECTION */}
+                  <div className="bg-gray-50 dark:bg-black p-4 rounded-lg border border-gray-200 dark:border-gray-800">
                     <div className="flex items-center justify-between mb-2">
-                      <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                        <Key className="h-4 w-4 mr-2" />
+                      <Label className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center">
+                        <Key className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-300" />
                         Verification Code
                       </Label>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => copyOTPToClipboard(request.otp_code, request.id)}
-                        className="h-8"
+                        className="h-8 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                       >
                         {copiedOTP === request.id ? (
                           <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -231,9 +231,9 @@ const AccountRecovery = () => {
 
                     <div
                       className="font-mono text-2xl font-bold tracking-wider text-center py-2 
-                                 bg-white dark:bg-gray-900 
-                                 text-gray-900 dark:text-gray-100 
-                                 border rounded border-gray-200 dark:border-gray-700"
+                                 bg-white dark:bg-black 
+                                 text-gray-900 dark:text-white 
+                                 border border-gray-200 dark:border-gray-800 rounded"
                     >
                       {request.otp_code}
                     </div>
@@ -244,7 +244,7 @@ const AccountRecovery = () => {
                   </div>
 
                   {request.handled_at && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-2">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-800 pt-2">
                       Handled on{" "}
                       {format(new Date(request.handled_at), "MMM dd, yyyy HH:mm")}
                     </div>
