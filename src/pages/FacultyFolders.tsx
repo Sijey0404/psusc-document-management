@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
-import { DocumentCategory } from "@/types"; 
+import { DocumentCategory } from "@/types"; // Using DocumentCategory which will have semester
 import { useSearchParams } from "react-router-dom";
 import { 
   DropdownMenu,
@@ -40,7 +41,6 @@ const FacultyFolders = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [semesterFilter, setSemesterFilter] = useState<string | null>(null);
-  const [schoolYearFilter, setSchoolYearFilter] = useState<string>(""); // NEW: for filtering by year
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documentTitle, setDocumentTitle] = useState("");
   const [documentDescription, setDocumentDescription] = useState("");
@@ -49,6 +49,7 @@ const FacultyFolders = () => {
   const fetchFolders = async () => {
     try {
       setLoading(true);
+      // Select semester along with other fields
       const { data, error } = await supabase
         .from("document_categories")
         .select("id, name, description, deadline, created_at, updated_at, semester") 
@@ -59,6 +60,7 @@ const FacultyFolders = () => {
       setFolders(data || []);
       setFilteredFolders(data || []);
       
+      // If we have a folder ID from the URL, find and open that folder
       if (folderIdFromUrl && data) {
         const folderToOpen = data.find(folder => folder.id === folderIdFromUrl);
         if (folderToOpen) {
@@ -78,29 +80,21 @@ const FacultyFolders = () => {
 
   useEffect(() => {
     fetchFolders();
-  }, [folderIdFromUrl]);
-
-  // Filter folders based on semester and school year
+  }, [folderIdFromUrl]); // Re-fetch when the folder ID in the URL changes
+  
+  // Apply filters when semesterFilter changes
   useEffect(() => {
-    let filtered = [...folders];
-
-    // Semester filter
-    if (semesterFilter && semesterFilter !== "all") {
-      filtered = filtered.filter(folder => folder.semester === semesterFilter);
+    if (semesterFilter) {
+      const filtered = folders.filter(folder => 
+        semesterFilter === "all" || folder.semester === semesterFilter
+      );
+      setFilteredFolders(filtered);
+    } else {
+      setFilteredFolders(folders);
     }
-
-    // School year filter (based on deadline year)
-    if (schoolYearFilter.trim() !== "") {
-      filtered = filtered.filter(folder => {
-        if (!folder.deadline) return false;
-        const year = new Date(folder.deadline).getFullYear().toString();
-        return year.includes(schoolYearFilter.trim());
-      });
-    }
-
-    setFilteredFolders(filtered);
-  }, [semesterFilter, schoolYearFilter, folders]);
-
+  }, [semesterFilter, folders]);
+  
+  // Debug button state
   useEffect(() => {
     console.log("Button state debug:", { 
       uploading, 
@@ -110,12 +104,8 @@ const FacultyFolders = () => {
     });
   }, [uploading, documentTitle, selectedFile]);
   
-  const clearSemesterFilter = () => {
+  const clearFilter = () => {
     setSemesterFilter(null);
-  };
-
-  const clearSchoolYearFilter = () => {
-    setSchoolYearFilter("");
   };
 
   const handleViewFolder = (folder: DocumentCategory) => {
@@ -135,19 +125,26 @@ const FacultyFolders = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("File change event triggered", e.target.files);
     if (!e.target.files || !e.target.files.length) {
+      console.log("No file selected, setting to null");
       setSelectedFile(null);
       return;
     }
+    
     const file = e.target.files[0];
+    console.log("File selected:", file.name, file.size);
     setSelectedFile(file);
   };
 
   const handleUpload = async () => {
+    console.log("handleUpload called", { selectedFile: selectedFile?.name, selectedFolder: selectedFolder?.name, profile: profile?.name });
     if (!selectedFile || !selectedFolder || !profile) {
+      console.log("Early return due to missing:", { selectedFile: !!selectedFile, selectedFolder: !!selectedFolder, profile: !!profile });
       return;
     }
     
+    // Validate required fields
     if (!documentTitle.trim()) {
       toast({
         title: "Required field missing",
@@ -159,14 +156,18 @@ const FacultyFolders = () => {
     
     try {
       setUploading(true);
+      
+      // Construct a file path including the folder name to organize uploads
       const filePath = `documents/${selectedFolder.id}/${selectedFile.name}`;
       
+      // Upload the file
       const { error: uploadError } = await supabase.storage
         .from("documents")
         .upload(filePath, selectedFile);
       
       if (uploadError) throw uploadError;
       
+      // Record the document in the database
       const { error: dbError } = await supabase.from("documents").insert({
         title: documentTitle,
         description: documentDescription,
@@ -186,6 +187,7 @@ const FacultyFolders = () => {
         description: `Document "${documentTitle}" uploaded to ${selectedFolder.name}`,
       });
       
+      // Reset form fields and close dialog
       setDocumentTitle("");
       setDocumentDescription("");
       setSelectedFile(null);
@@ -214,10 +216,9 @@ const FacultyFolders = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Folders Management</h1>
           <div className="flex items-center gap-2">
-            {/* Semester Filter Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -241,7 +242,7 @@ const FacultyFolders = () => {
                 {semesterFilter && (
                   <>
                     <DropdownMenuItem 
-                      onClick={clearSemesterFilter}
+                      onClick={clearFilter}
                       className="border-t mt-1 text-destructive"
                     >
                       <X className="h-4 w-4 mr-2" />
@@ -251,53 +252,23 @@ const FacultyFolders = () => {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* School Year Input Filter */}
-            <div className="flex items-center gap-2">
-              <Input
-                type="text"
-                placeholder="School Year (e.g. 2025)"
-                value={schoolYearFilter}
-                onChange={(e) => setSchoolYearFilter(e.target.value)}
-                className="w-40"
-              />
-              {schoolYearFilter && (
-                <Button variant="ghost" size="icon" onClick={clearSchoolYearFilter}>
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
           </div>
         </div>
         
-        {/* Active Filter Indicators */}
-        {(semesterFilter || schoolYearFilter) && (
-          <div className="bg-muted/50 p-2 px-4 rounded-md flex flex-wrap justify-between items-center text-sm gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium">Active filters:</span>
-              {semesterFilter && (
-                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
-                  {semesterFilter === "all" ? "All Semesters" : semesterFilter}
-                </span>
-              )}
-              {schoolYearFilter && (
-                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
-                  School Year: {schoolYearFilter}
-                </span>
-              )}
+        {semesterFilter && (
+          <div className="bg-muted/50 p-2 px-4 rounded-md flex justify-between items-center text-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Active filter:</span>
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
+                {semesterFilter === "all" ? "All Semesters" : semesterFilter}
+              </span>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => { clearSemesterFilter(); clearSchoolYearFilter(); }} 
-              className="h-8 gap-1"
-            >
-              <X className="h-4 w-4" /> Clear All
+            <Button variant="ghost" size="sm" onClick={clearFilter} className="h-8 gap-1">
+              <X className="h-4 w-4" /> Clear
             </Button>
           </div>
         )}
         
-        {/* Table */}
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -319,7 +290,7 @@ const FacultyFolders = () => {
               ) : filteredFolders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    No folders found for the selected filter(s).
+                    {semesterFilter ? "No folders found for the selected semester." : "No folders found."}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -353,7 +324,6 @@ const FacultyFolders = () => {
         </div>
       </div>
 
-      {/* Dialog for folder view / upload */}
       <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
         <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -367,7 +337,7 @@ const FacultyFolders = () => {
               <p className="text-sm text-muted-foreground mb-2">
                 {selectedFolder?.description}
               </p>
-              {selectedFolder?.semester && (
+              {selectedFolder?.semester && ( // Display semester in dialog
                 <p className="text-sm">
                   <strong>Semester:</strong> {selectedFolder.semester}
                 </p>
