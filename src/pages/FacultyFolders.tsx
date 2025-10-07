@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
-import { DocumentCategory } from "@/types"; // Using DocumentCategory which will have semester
+import { DocumentCategory } from "@/types";
 import { useSearchParams } from "react-router-dom";
 import { 
   DropdownMenu,
@@ -41,6 +40,7 @@ const FacultyFolders = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [semesterFilter, setSemesterFilter] = useState<string | null>(null);
+  const [schoolYearFilter, setSchoolYearFilter] = useState<string>(""); // NEW state for School Year filter
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documentTitle, setDocumentTitle] = useState("");
   const [documentDescription, setDocumentDescription] = useState("");
@@ -49,7 +49,6 @@ const FacultyFolders = () => {
   const fetchFolders = async () => {
     try {
       setLoading(true);
-      // Select semester along with other fields
       const { data, error } = await supabase
         .from("document_categories")
         .select("id, name, description, deadline, created_at, updated_at, semester") 
@@ -60,7 +59,6 @@ const FacultyFolders = () => {
       setFolders(data || []);
       setFilteredFolders(data || []);
       
-      // If we have a folder ID from the URL, find and open that folder
       if (folderIdFromUrl && data) {
         const folderToOpen = data.find(folder => folder.id === folderIdFromUrl);
         if (folderToOpen) {
@@ -80,21 +78,29 @@ const FacultyFolders = () => {
 
   useEffect(() => {
     fetchFolders();
-  }, [folderIdFromUrl]); // Re-fetch when the folder ID in the URL changes
+  }, [folderIdFromUrl]);
   
-  // Apply filters when semesterFilter changes
+  // Apply filters whenever semesterFilter or schoolYearFilter changes
   useEffect(() => {
+    let filtered = folders;
+
     if (semesterFilter) {
-      const filtered = folders.filter(folder => 
+      filtered = filtered.filter(folder =>
         semesterFilter === "all" || folder.semester === semesterFilter
       );
-      setFilteredFolders(filtered);
-    } else {
-      setFilteredFolders(folders);
     }
-  }, [semesterFilter, folders]);
+
+    if (schoolYearFilter.trim() !== "") {
+      filtered = filtered.filter(folder => {
+        if (!folder.deadline) return false;
+        const deadlineYear = new Date(folder.deadline).getFullYear().toString();
+        return deadlineYear.includes(schoolYearFilter.trim());
+      });
+    }
+
+    setFilteredFolders(filtered);
+  }, [semesterFilter, schoolYearFilter, folders]);
   
-  // Debug button state
   useEffect(() => {
     console.log("Button state debug:", { 
       uploading, 
@@ -106,6 +112,7 @@ const FacultyFolders = () => {
   
   const clearFilter = () => {
     setSemesterFilter(null);
+    setSchoolYearFilter("");
   };
 
   const handleViewFolder = (folder: DocumentCategory) => {
@@ -125,26 +132,16 @@ const FacultyFolders = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("File change event triggered", e.target.files);
     if (!e.target.files || !e.target.files.length) {
-      console.log("No file selected, setting to null");
       setSelectedFile(null);
       return;
     }
-    
     const file = e.target.files[0];
-    console.log("File selected:", file.name, file.size);
     setSelectedFile(file);
   };
 
   const handleUpload = async () => {
-    console.log("handleUpload called", { selectedFile: selectedFile?.name, selectedFolder: selectedFolder?.name, profile: profile?.name });
-    if (!selectedFile || !selectedFolder || !profile) {
-      console.log("Early return due to missing:", { selectedFile: !!selectedFile, selectedFolder: !!selectedFolder, profile: !!profile });
-      return;
-    }
-    
-    // Validate required fields
+    if (!selectedFile || !selectedFolder || !profile) return;
     if (!documentTitle.trim()) {
       toast({
         title: "Required field missing",
@@ -156,18 +153,14 @@ const FacultyFolders = () => {
     
     try {
       setUploading(true);
-      
-      // Construct a file path including the folder name to organize uploads
       const filePath = `documents/${selectedFolder.id}/${selectedFile.name}`;
       
-      // Upload the file
       const { error: uploadError } = await supabase.storage
         .from("documents")
         .upload(filePath, selectedFile);
       
       if (uploadError) throw uploadError;
       
-      // Record the document in the database
       const { error: dbError } = await supabase.from("documents").insert({
         title: documentTitle,
         description: documentDescription,
@@ -187,15 +180,11 @@ const FacultyFolders = () => {
         description: `Document "${documentTitle}" uploaded to ${selectedFolder.name}`,
       });
       
-      // Reset form fields and close dialog
       setDocumentTitle("");
       setDocumentDescription("");
       setSelectedFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
       handleCloseDialog();
-      
     } catch (error: any) {
       toast({
         title: "Upload failed",
@@ -223,13 +212,16 @@ const FacultyFolders = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-1">
                   <Filter className="h-4 w-4" />
-                  <span>Filter by Semester</span>
-                  {semesterFilter && (
+                  <span>Filter</span>
+                  {(semesterFilter || schoolYearFilter) && (
                     <span className="ml-1 h-2 w-2 rounded-full bg-primary"></span>
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-64 p-2 space-y-2">
+                <div className="px-2">
+                  <Label className="text-xs text-muted-foreground">Semester</Label>
+                </div>
                 <DropdownMenuItem onClick={() => setSemesterFilter("all")}>
                   All Semesters
                 </DropdownMenuItem>
@@ -239,29 +231,48 @@ const FacultyFolders = () => {
                 <DropdownMenuItem onClick={() => setSemesterFilter("2nd Semester")}>
                   2nd Semester
                 </DropdownMenuItem>
-                {semesterFilter && (
-                  <>
-                    <DropdownMenuItem 
-                      onClick={clearFilter}
-                      className="border-t mt-1 text-destructive"
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Clear Filter
-                    </DropdownMenuItem>
-                  </>
+
+                <div className="px-2 pt-2">
+                  <Label htmlFor="schoolYearFilter" className="text-xs text-muted-foreground">
+                    School Year
+                  </Label>
+                  <Input
+                    id="schoolYearFilter"
+                    placeholder="e.g. 2025"
+                    value={schoolYearFilter}
+                    onChange={(e) => setSchoolYearFilter(e.target.value)}
+                    className="mt-1 h-8"
+                  />
+                </div>
+
+                {(semesterFilter || schoolYearFilter) && (
+                  <DropdownMenuItem 
+                    onClick={clearFilter}
+                    className="border-t mt-1 text-destructive"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Clear All Filters
+                  </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
         
-        {semesterFilter && (
+        {(semesterFilter || schoolYearFilter) && (
           <div className="bg-muted/50 p-2 px-4 rounded-md flex justify-between items-center text-sm">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium">Active filter:</span>
-              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
-                {semesterFilter === "all" ? "All Semesters" : semesterFilter}
-              </span>
+              {semesterFilter && (
+                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
+                  {semesterFilter === "all" ? "All Semesters" : semesterFilter}
+                </span>
+              )}
+              {schoolYearFilter && (
+                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
+                  School Year: {schoolYearFilter}
+                </span>
+              )}
             </div>
             <Button variant="ghost" size="sm" onClick={clearFilter} className="h-8 gap-1">
               <X className="h-4 w-4" /> Clear
@@ -290,7 +301,7 @@ const FacultyFolders = () => {
               ) : filteredFolders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    {semesterFilter ? "No folders found for the selected semester." : "No folders found."}
+                    No folders found.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -337,7 +348,7 @@ const FacultyFolders = () => {
               <p className="text-sm text-muted-foreground mb-2">
                 {selectedFolder?.description}
               </p>
-              {selectedFolder?.semester && ( // Display semester in dialog
+              {selectedFolder?.semester && (
                 <p className="text-sm">
                   <strong>Semester:</strong> {selectedFolder.semester}
                 </p>
