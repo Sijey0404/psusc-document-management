@@ -595,51 +595,14 @@ const Folders = () => {
                     {folderStats.rate}%
                   </p>
                 </div>
-              </div>
-              
-              {/* Folder Details */}
-              <div className="border-t pt-4 space-y-3">
-                {viewedFolder?.description && (
-                  <div>
-                    <Label className="text-sm font-medium">Description</Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {viewedFolder.description}
-                    </p>
-                  </div>
-                )}
-                
-                {viewedFolder?.semester && (
-                  <div>
-                    <Label className="text-sm font-medium">Semester</Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {viewedFolder.semester}
-                    </p>
-                  </div>
-                )}
-                
-                {viewedFolder?.deadline && (
-                  <div>
-                    <Label className="text-sm font-medium">Deadline</Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {format(new Date(viewedFolder.deadline), "PPP p")}
-                    </p>
-                  </div>
-                )}
-                
-                <div>
-                  <Label className="text-sm font-medium">Created</Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {viewedFolder && format(new Date(viewedFolder.created_at), "PPP")}
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
-                Close
-              </Button>
-            </DialogFooter>
+               </div>
+             </div>
+             
+             <DialogFooter>
+               <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+                 Close
+               </Button>
+             </DialogFooter>
           </DialogContent>
         </Dialog>
         
