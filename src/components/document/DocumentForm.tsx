@@ -68,17 +68,7 @@ export const DocumentForm = ({
       <form onSubmit={onFormSubmit}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Title <span className="text-red-500">*</span></Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => onUpdateField("title", e.target.value)}
-              placeholder="Document title"
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
+      
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"

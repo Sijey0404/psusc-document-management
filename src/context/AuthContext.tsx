@@ -129,17 +129,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               .maybeSingle();
               
             if (profileData) {
-              // Check if user is archived
-              if (profileData.archived === true) {
-                toast({
-                  title: "Account Archived",
-                  description: "This account has been archived and cannot access the system",
-                  variant: "destructive",
-                });
-                await supabase.auth.signOut();
-                return;
-              }
-              
               toast({
                 title: "Admin account detected",
                 description: "Attempting to sign in as admin...",
@@ -173,8 +162,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
+      toast({
+        title: "Signed in successfully",
+        description: "Welcome back!",
+      });
+      
       if (data.user) {
-        // Check if user is archived before allowing login
+        await fetchUserProfile(data.user.id);
+        
         const { data: userProfile, error: profileError } = await supabase
           .from('profiles')
           .select('role, password_change_required, archived')
@@ -183,22 +178,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (profileError) throw profileError;
         
-        if (userProfile?.archived === true) {
-          toast({
-            title: "Account Archived",
-            description: "This account has been archived and cannot access the system",
-            variant: "destructive",
-          });
+        // Check if user is archived
+        if (userProfile?.archived) {
           await supabase.auth.signOut();
-          return;
+          throw new Error("This account has been archived and cannot access the system");
         }
-        
-        toast({
-          title: "Signed in successfully",
-          description: "Welcome back!",
-        });
-        
-        await fetchUserProfile(data.user.id);
         
         // Redirect based on role and check if password change required
         if (userProfile) {

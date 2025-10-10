@@ -40,13 +40,12 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     console.log("Verifying OTP in account recovery requests...");
-    // Verify OTP from account recovery requests
+    // Verify OTP from account recovery requests (no approval required)
     const { data: recoveryRequest, error: otpError } = await supabase
       .from('account_recovery_requests')
       .select('*')
       .eq('user_email', email)
       .eq('otp_code', otp)
-      .eq('status', 'PENDING')
       .gt('expires_at', new Date().toISOString())
       .maybeSingle();
 
@@ -72,113 +71,26 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("OTP verified, marking request as used...");
-    // Mark recovery request as used
-    const { error: markUsedError } = await supabase
+    console.log("OTP verified successfully, updating status to USED...");
+    // Update the recovery request status to USED
+    const { error: updateError } = await supabase
       .from('account_recovery_requests')
       .update({ 
         status: 'USED',
-        handled_at: new Date().toISOString()
+        handled_at: new Date().toISOString() 
       })
       .eq('id', recoveryRequest.id);
-
-    if (markUsedError) {
-      console.error("Error marking OTP as used:", markUsedError);
-    }
-
-    console.log("Finding user by email...");
-    // Get the user by email to create a session
-    const { data: users, error: userError } = await supabase.auth.admin.listUsers();
     
-    if (userError) {
-      console.error("Error fetching user:", userError);
-      return new Response(
-        JSON.stringify({ error: "Failed to authenticate user" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
+    if (updateError) {
+      console.error("Error updating recovery request status:", updateError);
+      // Don't fail the request, just log the error
     }
 
-    const user = users.users.find(u => u.email === email);
-    
-    if (!user) {
-      console.log("User not found");
-      return new Response(
-        JSON.stringify({ error: "User not found" }),
-        {
-          status: 404,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
-
-    // Check if user is archived
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('archived')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error("Error fetching profile:", profileError);
-      return new Response(
-        JSON.stringify({ error: "Failed to verify user status" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
-
-    if (profileData?.archived === true) {
-      console.log("User is archived");
-      return new Response(
-        JSON.stringify({ error: "This account has been archived and cannot recover password" }),
-        {
-          status: 403,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
-
-    console.log("Creating session for user...");
-    // Create a recovery session for the user
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: 'recovery',
-      email: email,
-    });
-
-    if (linkError) {
-      console.error("Error creating recovery link:", linkError);
-      return new Response(
-        JSON.stringify({ error: "Failed to create session" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
-
-    console.log("Setting password change required flag...");
-    // Set password change required flag
-    const { error: flagError } = await supabase
-      .from('profiles')
-      .update({ password_change_required: true })
-      .eq('id', user.id);
-
-    if (flagError) {
-      console.error("Error setting password change flag:", flagError);
-    }
-
-    console.log("Returning success response with tokens");
+    console.log("OTP verified successfully, user can now reset password");
     return new Response(JSON.stringify({ 
       success: true,
-      access_token: (linkData.properties as any)?.access_token,
-      refresh_token: (linkData.properties as any)?.refresh_token,
-      user: user,
-      message: "OTP verified successfully" 
+      message: "OTP verified successfully. You can now reset your password.",
+      user_email: email
     }), {
       status: 200,
       headers: {
