@@ -542,7 +542,7 @@ const Folders = () => {
         
         {/* View Folder Dialog */}
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
              <DialogHeader>
                <DialogTitle>{viewedFolder?.name}</DialogTitle>
                <DialogDescription>
@@ -554,26 +554,22 @@ const Folders = () => {
               {/* Statistics Table */}
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="p-4 text-left font-medium">Total Instructors</th>
+                      <th className="p-4 text-left font-medium">Total Submissions</th>
+                      <th className="p-4 text-left font-medium">Ontime</th>
+                      <th className="p-4 text-left font-medium">Late</th>
+                      <th className="p-4 text-left font-medium">Submission Rate</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr className="border-b">
-                      <td className="p-4 font-medium bg-muted/30">Total Instructors</td>
-                      <td className="p-4 text-right font-bold">{folderStats.totalInstructors}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-4 font-medium bg-muted/30">Total Submissions</td>
-                      <td className="p-4 text-right font-bold">{folderStats.totalSubmissions}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-4 font-medium bg-green-50 dark:bg-green-950/20">Ontime</td>
-                      <td className="p-4 text-right font-bold text-green-600 dark:text-green-400">{folderStats.ontime}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-4 font-medium bg-red-50 dark:bg-red-950/20">Late</td>
-                      <td className="p-4 text-right font-bold text-red-600 dark:text-red-400">{folderStats.late}</td>
-                    </tr>
                     <tr>
-                      <td className="p-4 font-medium bg-primary/10">Submission Rate</td>
-                      <td className="p-4 text-right font-bold text-primary">{folderStats.rate}%</td>
+                      <td className="p-4 text-center font-bold text-lg">{folderStats.totalInstructors}</td>
+                      <td className="p-4 text-center font-bold text-lg">{folderStats.totalSubmissions}</td>
+                      <td className="p-4 text-center font-bold text-lg text-green-600 dark:text-green-400">{folderStats.ontime}</td>
+                      <td className="p-4 text-center font-bold text-lg text-red-600 dark:text-red-400">{folderStats.late}</td>
+                      <td className="p-4 text-center font-bold text-lg text-primary">{folderStats.rate}%</td>
                     </tr>
                   </tbody>
                 </table>
