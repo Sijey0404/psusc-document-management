@@ -31,7 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye } from "lucide-react";
+import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { 
   DropdownMenu,
@@ -39,7 +39,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
 
 type Folder = {
   id: string;
@@ -52,7 +51,6 @@ type Folder = {
 };
 
 const Folders = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
   
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -365,6 +363,7 @@ const Folders = () => {
                         <Button
                           variant="outline"
                           size="icon"
+<<<<<<< HEAD
                           onClick={() => navigate(`/faculty-folders?folder=${folder.id}`)}
                           title="View folder"
                         >
@@ -380,6 +379,8 @@ const Folders = () => {
                         <Button
                           variant="outline"
                           size="icon"
+=======
+>>>>>>> 1595143e351d4b6143db747a2211891162e61e3d
                           onClick={() => handleEdit(folder)}
                           title="Edit folder"
                         >
