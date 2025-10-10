@@ -105,7 +105,7 @@ const Documents = () => {
     setFilteredDocuments(filtered);
   }, [searchQuery, documents, isPendingOnly]);
 
-  const handleFilterChange = ({ departmentId, categoryId, semester, schoolYear }: { departmentId?: string, categoryId?: string, semester?: string, schoolYear?: string }) => {
+  const handleFilterChange = ({ departmentId, categoryId, semester, deadline }: { departmentId?: string, categoryId?: string, semester?: string, deadline?: string }) => {
     let filtered = [...documents];
     
     if (departmentId && departmentId !== 'all-departments') {
@@ -120,12 +120,8 @@ const Documents = () => {
       filtered = filtered.filter(doc => doc.document_categories?.semester === semester);
     }
     
-    if (schoolYear) {
-      filtered = filtered.filter(doc => {
-        if (!doc.document_categories?.deadline) return false;
-        const deadlineYear = new Date(doc.document_categories.deadline).getFullYear().toString();
-        return deadlineYear === schoolYear;
-      });
+    if (deadline && deadline !== 'all-deadlines') {
+      filtered = filtered.filter(doc => doc.document_categories?.deadline === deadline);
     }
     
     // Apply pending filter if enabled

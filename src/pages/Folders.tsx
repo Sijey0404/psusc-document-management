@@ -61,7 +61,6 @@ const Folders = () => {
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [semesterFilter, setSemesterFilter] = useState<string | null>(null);
-  const [schoolYearFilter, setSchoolYearFilter] = useState<string>("");
   
   const [formData, setFormData] = useState({
     name: "",
@@ -97,32 +96,20 @@ const Folders = () => {
     fetchFolders();
   }, []);
   
-  // Apply filters when semesterFilter or schoolYearFilter changes
+  // Apply filters when semesterFilter changes
   useEffect(() => {
-    let filtered = folders;
-    
-    // Filter by semester
     if (semesterFilter) {
-      filtered = filtered.filter(folder => 
+      const filtered = folders.filter(folder => 
         semesterFilter === "all" || folder.semester === semesterFilter
       );
+      setFilteredFolders(filtered);
+    } else {
+      setFilteredFolders(folders);
     }
-    
-    // Filter by school year
-    if (schoolYearFilter) {
-      filtered = filtered.filter(folder => {
-        if (!folder.deadline) return false;
-        const year = new Date(folder.deadline).getFullYear();
-        return year.toString() === schoolYearFilter;
-      });
-    }
-    
-    setFilteredFolders(filtered);
-  }, [semesterFilter, schoolYearFilter, folders]);
+  }, [semesterFilter, folders]);
   
   const clearFilter = () => {
     setSemesterFilter(null);
-    setSchoolYearFilter("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -251,17 +238,6 @@ const Folders = () => {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Folders Management</h1>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="schoolYearFilter" className="text-sm whitespace-nowrap">School Year</Label>
-              <Input
-                id="schoolYearFilter"
-                type="number"
-                placeholder="e.g., 2025"
-                value={schoolYearFilter}
-                onChange={(e) => setSchoolYearFilter(e.target.value)}
-                className="w-32"
-              />
-            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -302,23 +278,16 @@ const Folders = () => {
           </div>
         </div>
         
-        {(semesterFilter || schoolYearFilter) && (
+        {semesterFilter && (
           <div className="bg-muted/50 p-2 px-4 rounded-md flex justify-between items-center text-sm">
             <div className="flex items-center gap-2">
-              <span className="font-medium">Active filters:</span>
-              {semesterFilter && (
-                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
-                  {semesterFilter === "all" ? "All Semesters" : semesterFilter}
-                </span>
-              )}
-              {schoolYearFilter && (
-                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
-                  School Year: {schoolYearFilter}
-                </span>
-              )}
+              <span className="font-medium">Active filter:</span>
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
+                {semesterFilter === "all" ? "All Semesters" : semesterFilter}
+              </span>
             </div>
             <Button variant="ghost" size="sm" onClick={clearFilter} className="h-8 gap-1">
-              <X className="h-4 w-4" /> Clear All
+              <X className="h-4 w-4" /> Clear
             </Button>
           </div>
         )}

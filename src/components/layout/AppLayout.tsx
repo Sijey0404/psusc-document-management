@@ -1,9 +1,10 @@
+
 import { ReactNode, useState, useEffect } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useNavigate, Link, useLocation, useParams } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FileText, Folder, Home, LogOut, Settings, Users, Moon, Sun, UserCheck, Key, HardDrive, Award } from "lucide-react";
+import { File, FileText, Folder, Home, LogOut, Settings, Users, Moon, Sun, UserCheck, Key, HardDrive, Award } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationDropdown } from "@/components/dashboard/NotificationDropdown";
@@ -29,40 +30,55 @@ export const AppLayout = ({
   children,
   isAdmin
 }: AppLayoutProps) => {
+  // Use try/catch to handle the case where router context might be missing
   let navigate;
   let location;
   try {
     navigate = useNavigate();
     location = useLocation();
   } catch (error) {
+    // Router context not available - provide fallbacks
     navigate = () => {};
     location = {
       pathname: window.location.pathname
     };
   }
-
-  const { toast } = useToast();
-  const { user, profile, signOut } = useAuth();
+  const {
+    toast
+  } = useToast();
+  const {
+    user,
+    profile,
+    signOut
+  } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
+    // Get the dark mode preference from localStorage on initial load
     const savedMode = localStorage.getItem('darkMode');
     return savedMode === 'true';
   });
 
-  const { isAdmin: contextIsAdmin } = useAuth();
+  // Use the isAdmin prop if provided, or fall back to the auth context
+  const {
+    isAdmin: contextIsAdmin
+  } = useAuth();
   const adminStatus = isAdmin !== undefined ? isAdmin : contextIsAdmin;
 
+  // Animation on route change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
-
+  
+  // Dark mode effect
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
+    
+    // Store the dark mode preference in localStorage
     localStorage.setItem('darkMode', String(darkMode));
   }, [darkMode]);
 
@@ -86,6 +102,7 @@ export const AppLayout = ({
     setDarkMode(prev => !prev);
   };
 
+  // Get first letter of first and last name for avatar
   const getInitials = () => {
     if (!profile?.name) return user?.email?.substring(0, 2).toUpperCase() || "??";
     const names = profile.name.split(" ");
@@ -199,6 +216,7 @@ const AppSidebar = ({ isAdmin }: { isAdmin: boolean }) => {
   try {
     location = useLocation();
   } catch (error) {
+    // Router context not available
     location = {
       pathname: window.location.pathname
     };
@@ -207,7 +225,7 @@ const AppSidebar = ({ isAdmin }: { isAdmin: boolean }) => {
   const menuItems = [
     { path: isAdmin ? "/admin/dashboard" : "/dashboard", icon: Home, label: "Dashboard" },
     { path: "/documents", icon: FileText, label: "Documents" },
-    ...(isAdmin ? [{ path: "/ratings", icon: Award, label: "Ratings" }] : []),
+    { path: "/ratings", icon: Award, label: "Ratings" },
     ...(isAdmin ? [
       { path: "/users", icon: Users, label: "Users" },
       { path: "/account-confirmation", icon: UserCheck, label: "Account Confirmation" },
