@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Edit, Trash, Plus, AlertCircle, Filter, X, Eye } from "lucide-react";
+import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { 
   DropdownMenu,
@@ -45,7 +46,6 @@ type Folder = {
   description: string | null;
   deadline: string | null;
   semester: string | null;
-  school_year: string | null; // ✅ Added school_year field
   created_at: string;
   updated_at: string;
 };
@@ -61,7 +61,6 @@ const Folders = () => {
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [semesterFilter, setSemesterFilter] = useState<string | null>(null);
-  const [schoolYearFilter, setSchoolYearFilter] = useState<string | null>(null); // ✅ New state
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewedFolder, setViewedFolder] = useState<Folder | null>(null);
   
@@ -70,7 +69,6 @@ const Folders = () => {
     description: "",
     deadline: "",
     semester: "",
-    school_year: "", // ✅ Added to form
   });
 
   const fetchFolders = async () => {
@@ -78,7 +76,7 @@ const Folders = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("document_categories")
-        .select("*, semester, school_year") // ✅ Include school_year
+        .select("*, semester")
         .order("name");
         
       if (error) throw error;
@@ -100,23 +98,21 @@ const Folders = () => {
     fetchFolders();
   }, []);
   
-  // Apply filters for semester and school year
+  // Apply filters when semesterFilter changes
   useEffect(() => {
-    let filtered = [...folders];
-    
-    if (semesterFilter && semesterFilter !== "all") {
-      filtered = filtered.filter(folder => folder.semester === semesterFilter);
+    if (semesterFilter) {
+      const filtered = folders.filter(folder => 
+        semesterFilter === "all" || folder.semester === semesterFilter
+      );
+      setFilteredFolders(filtered);
+    } else {
+      setFilteredFolders(folders);
     }
-    
-    if (schoolYearFilter && schoolYearFilter !== "all") {
-      filtered = filtered.filter(folder => folder.school_year === schoolYearFilter);
-    }
-    
-    setFilteredFolders(filtered);
-  }, [semesterFilter, schoolYearFilter, folders]);
-
-  const clearSemesterFilter = () => setSemesterFilter(null);
-  const clearSchoolYearFilter = () => setSchoolYearFilter(null); // ✅ clear school year filter
+  }, [semesterFilter, folders]);
+  
+  const clearFilter = () => {
+    setSemesterFilter(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,10 +123,10 @@ const Folders = () => {
         description: formData.description || null,
         deadline: formData.deadline || null,
         semester: formData.semester || null,
-        school_year: formData.school_year || null, // ✅ Include in payload
       };
       
       if (selectedFolder) {
+        // Update existing folder
         const { error } = await supabase
           .from("document_categories")
           .update(payload)
@@ -143,6 +139,7 @@ const Folders = () => {
           description: `${formData.name} has been updated successfully.`,
         });
       } else {
+        // Create new folder
         const { data: newFolder, error } = await supabase
           .from("document_categories")
           .insert([payload])
@@ -173,8 +170,7 @@ const Folders = () => {
       name: folder.name,
       description: folder.description || "",
       deadline: folder.deadline ? new Date(folder.deadline).toISOString().slice(0, 16) : "",
-      semester: folder.semester || "",
-      school_year: folder.school_year || "", // ✅ populate school_year
+      semester: folder.semester || "", // Ensure it's "" if null for Select value
     });
     setFormOpen(true);
   };
@@ -185,6 +181,7 @@ const Folders = () => {
     try {
       setIsDeleting(true);
       
+      // Get count of documents using this category
       const { count, error: countError } = await supabase
         .from("documents")
         .select("*", { count: "exact", head: true })
@@ -192,6 +189,7 @@ const Folders = () => {
         
       if (countError) throw countError;
       
+      // Delete the folder (this will now cascade delete documents)
       const { error } = await supabase
         .from("document_categories")
         .delete()
@@ -230,8 +228,7 @@ const Folders = () => {
       name: "",
       description: "",
       deadline: "",
-      semester: "",
-      school_year: "", // ✅ reset
+      semester: "", // Reset to empty string
     });
     setSelectedFolder(null);
     setFormOpen(false);
@@ -250,11 +247,13 @@ const Folders = () => {
     setViewDialogOpen(true);
     
     try {
+      // Fetch total instructors (faculty members)
       const { count: instructorCount } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true })
         .eq("role", false);
       
+      // Fetch all submissions for this folder
       const { data: submissions, error } = await supabase
         .from("documents")
         .select("created_at")
@@ -266,15 +265,20 @@ const Folders = () => {
       let ontime = 0;
       let late = 0;
       
+      // Calculate ontime and late submissions
       if (folder.deadline && submissions) {
         const deadlineDate = new Date(folder.deadline);
         submissions.forEach(doc => {
           const submissionDate = new Date(doc.created_at);
-          if (submissionDate <= deadlineDate) ontime++;
-          else late++;
+          if (submissionDate <= deadlineDate) {
+            ontime++;
+          } else {
+            late++;
+          }
         });
       }
       
+      // Calculate submission rate (submissions / instructors * 100)
       const rate = instructorCount ? ((totalSubmissions / instructorCount) * 100).toFixed(1) : 0;
       
       setFolderStats({
@@ -299,7 +303,6 @@ const Folders = () => {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Folders Management</h1>
           <div className="flex items-center gap-2">
-            {/* Semester Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -321,82 +324,39 @@ const Folders = () => {
                   2nd Semester
                 </DropdownMenuItem>
                 {semesterFilter && (
-                  <DropdownMenuItem 
-                    onClick={clearSemesterFilter}
-                    className="border-t mt-1 text-destructive"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Clear Filter
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem 
+                      onClick={clearFilter}
+                      className="border-t mt-1 text-destructive"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Clear Filter
+                    </DropdownMenuItem>
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* ✅ School Year Filter */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center gap-1">
-                  <Filter className="h-4 w-4" />
-                  <span>Filter by School Year</span>
-                  {schoolYearFilter && (
-                    <span className="ml-1 h-2 w-2 rounded-full bg-primary"></span>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => setSchoolYearFilter("all")}>
-                  All School Years
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSchoolYearFilter("2024-2025")}>
-                  2024-2025
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSchoolYearFilter("2025-2026")}>
-                  2025-2026
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSchoolYearFilter("2026-2027")}>
-                  2026-2027
-                </DropdownMenuItem>
-                {schoolYearFilter && (
-                  <DropdownMenuItem 
-                    onClick={clearSchoolYearFilter}
-                    className="border-t mt-1 text-destructive"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Clear Filter
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
             <Button onClick={() => setFormOpen(true)} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Add New Folder
             </Button>
           </div>
         </div>
-
-        {/* Active filters badge */}
-        {(semesterFilter || schoolYearFilter) && (
+        
+        {semesterFilter && (
           <div className="bg-muted/50 p-2 px-4 rounded-md flex justify-between items-center text-sm">
-            <div className="flex items-center gap-3 flex-wrap">
-              {semesterFilter && (
-                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
-                  Semester: {semesterFilter === "all" ? "All" : semesterFilter}
-                </span>
-              )}
-              {schoolYearFilter && (
-                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
-                  School Year: {schoolYearFilter === "all" ? "All" : schoolYearFilter}
-                </span>
-              )}
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Active filter:</span>
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
+                {semesterFilter === "all" ? "All Semesters" : semesterFilter}
+              </span>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => {clearSemesterFilter(); clearSchoolYearFilter();}} className="h-8 gap-1">
-              <X className="h-4 w-4" /> Clear All
+            <Button variant="ghost" size="sm" onClick={clearFilter} className="h-8 gap-1">
+              <X className="h-4 w-4" /> Clear
             </Button>
           </div>
         )}
-
-        {/* ✅ Add school_year column */}
+        
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -404,7 +364,6 @@ const Folders = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Semester</TableHead>
-                <TableHead>School Year</TableHead>
                 <TableHead>Deadline</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -412,14 +371,14 @@ const Folders = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     Loading folders...
                   </TableCell>
                 </TableRow>
               ) : filteredFolders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    {semesterFilter || schoolYearFilter ? "No folders found for the selected filters." : "No folders found. Create one to get started."}
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    {semesterFilter ? "No folders found for the selected semester." : "No folders found. Create one to get started."}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -428,7 +387,6 @@ const Folders = () => {
                     <TableCell className="font-medium">{folder.name}</TableCell>
                     <TableCell>{folder.description || "-"}</TableCell>
                     <TableCell>{folder.semester || "-"}</TableCell>
-                    <TableCell>{folder.school_year || "-"}</TableCell>
                     <TableCell>
                       {folder.deadline 
                         ? format(new Date(folder.deadline), "PPP p") 
@@ -469,8 +427,8 @@ const Folders = () => {
             </TableBody>
           </Table>
         </div>
-
-        {/* ✅ Folder Form - Add School Year Field */}
+        
+        {/* Folder Form Dialog */}
         <Dialog open={formOpen} onOpenChange={setFormOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -521,24 +479,9 @@ const Folders = () => {
                     <SelectItem value="2nd Semester">2nd Semester</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              {/* ✅ Add School Year */}
-              <div className="space-y-2">
-                <Label htmlFor="school_year">School Year</Label>
-                <Select
-                  value={formData.school_year}
-                  onValueChange={(value) => setFormData({ ...formData, school_year: value })}
-                >
-                  <SelectTrigger id="school_year" className="w-full">
-                    <SelectValue placeholder="Select school year (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2024-2025">2024-2025</SelectItem>
-                    <SelectItem value="2025-2026">2025-2026</SelectItem>
-                    <SelectItem value="2026-2027">2026-2027</SelectItem>
-                  </SelectContent>
-                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Optional: Select the semester for this folder.
+                </p>
               </div>
               
               <div className="space-y-2">
@@ -549,6 +492,9 @@ const Folders = () => {
                   value={formData.deadline}
                   onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Optional deadline for this folder.
+                </p>
               </div>
               
               <DialogFooter className="pt-4">
@@ -562,10 +508,139 @@ const Folders = () => {
             </form>
           </DialogContent>
         </Dialog>
-
-        {/* Other dialogs remain unchanged (view + delete) */}
-        {/* ... keep the rest of your code identical ... */}
-
+        
+        {/* View Folder Dialog */}
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle>{viewedFolder?.name}</DialogTitle>
+                  <DialogDescription>
+                    Folder statistics and information
+                  </DialogDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewDialogOpen(false)}
+                  className="h-6 w-6"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </DialogHeader>
+            
+            <div className="space-y-6 py-4">
+              {/* Statistics Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="border rounded-lg p-4 bg-muted/50">
+                  <Label className="text-xs text-muted-foreground">Total Instructors</Label>
+                  <p className="text-2xl font-bold mt-1">{folderStats.totalInstructors}</p>
+                </div>
+                
+                <div className="border rounded-lg p-4 bg-muted/50">
+                  <Label className="text-xs text-muted-foreground">Total Submissions</Label>
+                  <p className="text-2xl font-bold mt-1">{folderStats.totalSubmissions}</p>
+                </div>
+                
+                <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-950/20">
+                  <Label className="text-xs text-muted-foreground">Ontime</Label>
+                  <p className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">
+                    {folderStats.ontime}
+                  </p>
+                </div>
+                
+                <div className="border rounded-lg p-4 bg-red-50 dark:bg-red-950/20">
+                  <Label className="text-xs text-muted-foreground">Late</Label>
+                  <p className="text-2xl font-bold mt-1 text-red-600 dark:text-red-400">
+                    {folderStats.late}
+                  </p>
+                </div>
+                
+                <div className="border rounded-lg p-4 bg-primary/10 col-span-2">
+                  <Label className="text-xs text-muted-foreground">Submission Rate</Label>
+                  <p className="text-2xl font-bold mt-1 text-primary">
+                    {folderStats.rate}%
+                  </p>
+                </div>
+              </div>
+              
+              {/* Folder Details */}
+              <div className="border-t pt-4 space-y-3">
+                {viewedFolder?.description && (
+                  <div>
+                    <Label className="text-sm font-medium">Description</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {viewedFolder.description}
+                    </p>
+                  </div>
+                )}
+                
+                {viewedFolder?.semester && (
+                  <div>
+                    <Label className="text-sm font-medium">Semester</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {viewedFolder.semester}
+                    </p>
+                  </div>
+                )}
+                
+                {viewedFolder?.deadline && (
+                  <div>
+                    <Label className="text-sm font-medium">Deadline</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {format(new Date(viewedFolder.deadline), "PPP p")}
+                    </p>
+                  </div>
+                )}
+                
+                <div>
+                  <Label className="text-sm font-medium">Created</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {viewedFolder && format(new Date(viewedFolder.created_at), "PPP")}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                Confirm Deletion
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete the folder "{selectedFolder?.name}"?
+                <strong className="block mt-2 text-destructive">
+                  This will also delete all documents assigned to this folder.
+                </strong>
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            
+            <AlertDialogFooter className="pt-4">
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Folder"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
