@@ -40,8 +40,9 @@ const FacultyFolders = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [semesterFilter, setSemesterFilter] = useState<string | null>(null);
-  const [schoolYearFilter, setSchoolYearFilter] = useState<string>(""); // NEW state for School Year filter
+  const [schoolYearFilter, setSchoolYearFilter] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [documentTitle, setDocumentTitle] = useState("");
   const [documentDescription, setDocumentDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -79,7 +80,6 @@ const FacultyFolders = () => {
     fetchFolders();
   }, [folderIdFromUrl]);
   
-  // Apply filters whenever semesterFilter or schoolYearFilter changes
   useEffect(() => {
     let filtered = folders;
 
@@ -100,15 +100,6 @@ const FacultyFolders = () => {
     setFilteredFolders(filtered);
   }, [semesterFilter, schoolYearFilter, folders]);
   
-  useEffect(() => {
-    console.log("Button state debug:", { 
-      uploading, 
-      documentTitleTrimmed: documentTitle.trim(), 
-      selectedFile: selectedFile?.name || null, 
-      buttonDisabled: uploading || !documentTitle.trim() || !selectedFile 
-    });
-  }, [uploading, documentTitle, selectedFile]);
-  
   const clearFilter = () => {
     setSemesterFilter(null);
     setSchoolYearFilter("");
@@ -117,7 +108,6 @@ const FacultyFolders = () => {
   const handleViewFolder = (folder: DocumentCategory) => {
     setSelectedFolder(folder);
     setIsDialogOpen(true);
-    setDocumentTitle("");
     setDocumentDescription("");
     setSelectedFile(null);
   };
@@ -126,7 +116,6 @@ const FacultyFolders = () => {
     setIsDialogOpen(false);
     setSelectedFolder(null);
     setSelectedFile(null);
-    setDocumentTitle("");
     setDocumentDescription("");
   };
 
@@ -137,11 +126,12 @@ const FacultyFolders = () => {
     }
     const file = e.target.files[0];
     setSelectedFile(file);
+    setDocumentTitle(file.name.replace(/\.[^/.]+$/, "")); // Automatically use file name as title (without extension)
   };
 
   const handleUpload = async () => {
     if (!selectedFile || !selectedFolder || !profile) return;
-    
+
     try {
       setUploading(true);
       const filePath = `documents/${selectedFolder.id}/${selectedFile.name}`;
@@ -153,7 +143,7 @@ const FacultyFolders = () => {
       if (uploadError) throw uploadError;
       
       const { error: dbError } = await supabase.from("documents").insert({
-        title: selectedFile.name,
+        title: documentTitle,
         description: documentDescription,
         file_path: filePath,
         file_type: selectedFile.type,
@@ -168,7 +158,7 @@ const FacultyFolders = () => {
       
       toast({
         title: "Upload successful",
-        description: `Document "${selectedFile.name}" uploaded to ${selectedFolder.name}`,
+        description: `Document "${documentTitle}" uploaded to ${selectedFolder.name}`,
       });
       
       setDocumentDescription("");
