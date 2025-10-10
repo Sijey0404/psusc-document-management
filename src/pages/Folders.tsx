@@ -543,24 +543,12 @@ const Folders = () => {
         {/* View Folder Dialog */}
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
           <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <DialogTitle>{viewedFolder?.name}</DialogTitle>
-                  <DialogDescription>
-                    Folder statistics and information
-                  </DialogDescription>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setViewDialogOpen(false)}
-                  className="h-6 w-6"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </DialogHeader>
+             <DialogHeader>
+               <DialogTitle>{viewedFolder?.name}</DialogTitle>
+               <DialogDescription>
+                 Folder statistics and information
+               </DialogDescription>
+             </DialogHeader>
             
             <div className="space-y-6 py-4">
               {/* Statistics Grid */}
