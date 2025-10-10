@@ -40,7 +40,7 @@ const FacultyFolders = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [semesterFilter, setSemesterFilter] = useState<string | null>(null);
-  const [schoolYearFilter, setSchoolYearFilter] = useState<string>(""); // NEW state for School Year filter
+  const [schoolYearFilter, setSchoolYearFilter] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documentTitle, setDocumentTitle] = useState("");
   const [documentDescription, setDocumentDescription] = useState("");
@@ -80,7 +80,6 @@ const FacultyFolders = () => {
     fetchFolders();
   }, [folderIdFromUrl]);
   
-  // Apply filters whenever semesterFilter or schoolYearFilter changes
   useEffect(() => {
     let filtered = folders;
 
@@ -101,15 +100,6 @@ const FacultyFolders = () => {
     setFilteredFolders(filtered);
   }, [semesterFilter, schoolYearFilter, folders]);
   
-  useEffect(() => {
-    console.log("Button state debug:", { 
-      uploading, 
-      documentTitleTrimmed: documentTitle.trim(), 
-      selectedFile: selectedFile?.name || null, 
-      buttonDisabled: uploading || !documentTitle.trim() || !selectedFile 
-    });
-  }, [uploading, documentTitle, selectedFile]);
-  
   const clearFilter = () => {
     setSemesterFilter(null);
     setSchoolYearFilter("");
@@ -118,7 +108,6 @@ const FacultyFolders = () => {
   const handleViewFolder = (folder: DocumentCategory) => {
     setSelectedFolder(folder);
     setIsDialogOpen(true);
-    setDocumentTitle("");
     setDocumentDescription("");
     setSelectedFile(null);
   };
@@ -127,7 +116,6 @@ const FacultyFolders = () => {
     setIsDialogOpen(false);
     setSelectedFolder(null);
     setSelectedFile(null);
-    setDocumentTitle("");
     setDocumentDescription("");
   };
 
@@ -138,19 +126,12 @@ const FacultyFolders = () => {
     }
     const file = e.target.files[0];
     setSelectedFile(file);
+    setDocumentTitle(file.name.replace(/\.[^/.]+$/, "")); // Automatically use file name as title (without extension)
   };
 
   const handleUpload = async () => {
     if (!selectedFile || !selectedFolder || !profile) return;
-    if (!documentTitle.trim()) {
-      toast({
-        title: "Required field missing",
-        description: "Please enter a document title",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+
     try {
       setUploading(true);
       const filePath = `documents/${selectedFolder.id}/${selectedFile.name}`;
@@ -180,7 +161,6 @@ const FacultyFolders = () => {
         description: `Document "${documentTitle}" uploaded to ${selectedFolder.name}`,
       });
       
-      setDocumentTitle("");
       setDocumentDescription("");
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -363,17 +343,6 @@ const FacultyFolders = () => {
             
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="documentTitle">Document Title <span className="text-red-500">*</span></Label>
-                <Input
-                  id="documentTitle"
-                  value={documentTitle}
-                  onChange={(e) => setDocumentTitle(e.target.value)}
-                  placeholder="Enter document title"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
                 <Label htmlFor="documentDescription">Description</Label>
                 <Textarea
                   id="documentDescription"
@@ -428,7 +397,7 @@ const FacultyFolders = () => {
               </Button>
               <Button 
                 onClick={handleUpload}
-                disabled={uploading || !documentTitle.trim() || !selectedFile}
+                disabled={uploading || !selectedFile}
               >
                 {uploading ? "Uploading..." : "Upload Document"}
               </Button>
