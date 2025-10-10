@@ -42,7 +42,6 @@ const FacultyFolders = () => {
   const [semesterFilter, setSemesterFilter] = useState<string | null>(null);
   const [schoolYearFilter, setSchoolYearFilter] = useState<string>(""); // NEW state for School Year filter
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [documentTitle, setDocumentTitle] = useState("");
   const [documentDescription, setDocumentDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -142,14 +141,6 @@ const FacultyFolders = () => {
 
   const handleUpload = async () => {
     if (!selectedFile || !selectedFolder || !profile) return;
-    if (!documentTitle.trim()) {
-      toast({
-        title: "Required field missing",
-        description: "Please enter a document title",
-        variant: "destructive",
-      });
-      return;
-    }
     
     try {
       setUploading(true);
@@ -162,7 +153,7 @@ const FacultyFolders = () => {
       if (uploadError) throw uploadError;
       
       const { error: dbError } = await supabase.from("documents").insert({
-        title: documentTitle,
+        title: selectedFile.name,
         description: documentDescription,
         file_path: filePath,
         file_type: selectedFile.type,
@@ -177,10 +168,9 @@ const FacultyFolders = () => {
       
       toast({
         title: "Upload successful",
-        description: `Document "${documentTitle}" uploaded to ${selectedFolder.name}`,
+        description: `Document "${selectedFile.name}" uploaded to ${selectedFolder.name}`,
       });
       
-      setDocumentTitle("");
       setDocumentDescription("");
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -363,17 +353,6 @@ const FacultyFolders = () => {
             
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="documentTitle">Document Title <span className="text-red-500">*</span></Label>
-                <Input
-                  id="documentTitle"
-                  value={documentTitle}
-                  onChange={(e) => setDocumentTitle(e.target.value)}
-                  placeholder="Enter document title"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
                 <Label htmlFor="documentDescription">Description</Label>
                 <Textarea
                   id="documentDescription"
@@ -428,7 +407,7 @@ const FacultyFolders = () => {
               </Button>
               <Button 
                 onClick={handleUpload}
-                disabled={uploading || !documentTitle.trim() || !selectedFile}
+                disabled={uploading || !selectedFile}
               >
                 {uploading ? "Uploading..." : "Upload Document"}
               </Button>
