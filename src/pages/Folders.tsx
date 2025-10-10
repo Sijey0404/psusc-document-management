@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,17 +30,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
-} from "@/components/ui/alert-dialog";
-import { Edit, Trash, Plus, Filter, X, Eye, AlertCircle } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { 
   DropdownMenu,
@@ -69,9 +61,7 @@ const Folders = () => {
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [semesterFilter, setSemesterFilter] = useState<string | null>(null);
-  const [schoolYear, setSchoolYear] = useState<string>(""); // ✅ New School-Year state
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [viewedFolder, setViewedFolder] = useState<Folder | null>(null);
+  const [schoolYearFilter, setSchoolYearFilter] = useState<string>("");
   
   const [formData, setFormData] = useState({
     name: "",
@@ -107,28 +97,32 @@ const Folders = () => {
     fetchFolders();
   }, []);
   
-  // ✅ Apply both Semester and School-Year filters
+  // Apply filters when semesterFilter or schoolYearFilter changes
   useEffect(() => {
-    let filtered = [...folders];
-
-    if (semesterFilter && semesterFilter !== "all") {
-      filtered = filtered.filter(folder => folder.semester === semesterFilter);
+    let filtered = folders;
+    
+    // Filter by semester
+    if (semesterFilter) {
+      filtered = filtered.filter(folder => 
+        semesterFilter === "all" || folder.semester === semesterFilter
+      );
     }
-
-    if (schoolYear.trim() !== "") {
+    
+    // Filter by school year
+    if (schoolYearFilter) {
       filtered = filtered.filter(folder => {
         if (!folder.deadline) return false;
-        const year = new Date(folder.deadline).getFullYear().toString();
-        return year.includes(schoolYear);
+        const year = new Date(folder.deadline).getFullYear();
+        return year.toString() === schoolYearFilter;
       });
     }
-
+    
     setFilteredFolders(filtered);
-  }, [semesterFilter, schoolYear, folders]);
+  }, [semesterFilter, schoolYearFilter, folders]);
   
   const clearFilter = () => {
     setSemesterFilter(null);
-    setSchoolYear("");
+    setSchoolYearFilter("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,6 +137,7 @@ const Folders = () => {
       };
       
       if (selectedFolder) {
+        // Update existing folder
         const { error } = await supabase
           .from("document_categories")
           .update(payload)
@@ -155,15 +150,17 @@ const Folders = () => {
           description: `${formData.name} has been updated successfully.`,
         });
       } else {
-        const { error } = await supabase
+        // Create new folder
+        const { data: newFolder, error } = await supabase
           .from("document_categories")
-          .insert([payload]);
+          .insert([payload])
+          .select();
           
         if (error) throw error;
         
         toast({
           title: "Folder created",
-          description: `${formData.name} has been created successfully.`,
+          description: `${formData.name} has been created successfully and faculty members have been notified.`,
         });
       }
       
@@ -184,7 +181,7 @@ const Folders = () => {
       name: folder.name,
       description: folder.description || "",
       deadline: folder.deadline ? new Date(folder.deadline).toISOString().slice(0, 16) : "",
-      semester: folder.semester || "",
+      semester: folder.semester || "", // Ensure it's "" if null for Select value
     });
     setFormOpen(true);
   };
@@ -195,11 +192,15 @@ const Folders = () => {
     try {
       setIsDeleting(true);
       
-      const { count } = await supabase
+      // Get count of documents using this category
+      const { count, error: countError } = await supabase
         .from("documents")
         .select("*", { count: "exact", head: true })
         .eq("category_id", selectedFolder.id);
+        
+      if (countError) throw countError;
       
+      // Delete the folder (this will now cascade delete documents)
       const { error } = await supabase
         .from("document_categories")
         .delete()
@@ -210,7 +211,7 @@ const Folders = () => {
       toast({
         title: "Folder deleted",
         description: count && count > 0 
-          ? `${selectedFolder.name} and its ${count} associated documents have been deleted.`
+          ? `${selectedFolder.name} and its ${count} associated document${count === 1 ? '' : 's'} have been deleted.`
           : `${selectedFolder.name} has been deleted successfully.`,
       });
       
@@ -238,23 +239,10 @@ const Folders = () => {
       name: "",
       description: "",
       deadline: "",
-      semester: "",
+      semester: "", // Reset to empty string
     });
     setSelectedFolder(null);
     setFormOpen(false);
-  };
-
-  const [folderStats, setFolderStats] = useState({
-    totalInstructors: 0,
-    totalSubmissions: 0,
-    ontime: 0,
-    late: 0,
-    rate: 0,
-  });
-
-  const handleView = async (folder: Folder) => {
-    setViewedFolder(folder);
-    setViewDialogOpen(true);
   };
 
   return (
@@ -262,15 +250,24 @@ const Folders = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Folders Management</h1>
-
           <div className="flex items-center gap-2">
-            {/* Semester Filter */}
+            <div className="flex items-center gap-2">
+              <Label htmlFor="schoolYearFilter" className="text-sm whitespace-nowrap">School Year</Label>
+              <Input
+                id="schoolYearFilter"
+                type="number"
+                placeholder="e.g., 2025"
+                value={schoolYearFilter}
+                onChange={(e) => setSchoolYearFilter(e.target.value)}
+                className="w-32"
+              />
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-1">
                   <Filter className="h-4 w-4" />
                   <span>Filter by Semester</span>
-                  {(semesterFilter || schoolYear) && (
+                  {semesterFilter && (
                     <span className="ml-1 h-2 w-2 rounded-full bg-primary"></span>
                   )}
                 </Button>
@@ -285,37 +282,27 @@ const Folders = () => {
                 <DropdownMenuItem onClick={() => setSemesterFilter("2nd Semester")}>
                   2nd Semester
                 </DropdownMenuItem>
-                {(semesterFilter || schoolYear) && (
-                  <DropdownMenuItem 
-                    onClick={clearFilter}
-                    className="border-t mt-1 text-destructive"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Clear Filters
-                  </DropdownMenuItem>
+                {semesterFilter && (
+                  <>
+                    <DropdownMenuItem 
+                      onClick={clearFilter}
+                      className="border-t mt-1 text-destructive"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Clear Filter
+                    </DropdownMenuItem>
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* ✅ New School-Year Input */}
-            <Input
-              type="number"
-              placeholder="School-Year (e.g. 2025)"
-              value={schoolYear}
-              onChange={(e) => setSchoolYear(e.target.value)}
-              className="w-40"
-            />
-
-            {/* Add Folder Button */}
             <Button onClick={() => setFormOpen(true)} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Add New Folder
             </Button>
           </div>
         </div>
-
-        {/* Filter Info */}
-        {(semesterFilter || schoolYear) && (
+        
+        {(semesterFilter || schoolYearFilter) && (
           <div className="bg-muted/50 p-2 px-4 rounded-md flex justify-between items-center text-sm">
             <div className="flex items-center gap-2">
               <span className="font-medium">Active filters:</span>
@@ -324,19 +311,18 @@ const Folders = () => {
                   {semesterFilter === "all" ? "All Semesters" : semesterFilter}
                 </span>
               )}
-              {schoolYear && (
+              {schoolYearFilter && (
                 <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
-                  Year: {schoolYear}
+                  School Year: {schoolYearFilter}
                 </span>
               )}
             </div>
             <Button variant="ghost" size="sm" onClick={clearFilter} className="h-8 gap-1">
-              <X className="h-4 w-4" /> Clear
+              <X className="h-4 w-4" /> Clear All
             </Button>
           </div>
         )}
-
-        {/* Table */}
+        
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -358,7 +344,7 @@ const Folders = () => {
               ) : filteredFolders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    No folders found.
+                    {semesterFilter ? "No folders found for the selected semester." : "No folders found. Create one to get started."}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -374,14 +360,6 @@ const Folders = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleView(folder)}
-                          title="View folder"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
                         <Button
                           variant="outline"
                           size="icon"
@@ -407,6 +385,117 @@ const Folders = () => {
             </TableBody>
           </Table>
         </div>
+        
+        {/* Folder Form Dialog */}
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedFolder ? "Edit Folder" : "Create New Folder"}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedFolder 
+                  ? "Update the folder information below."
+                  : "Fill out the form to create a new folder."}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handleSubmit} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Folder Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter folder name"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Enter folder description (optional)"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="semester">Semester</Label>
+                <Select
+                  value={formData.semester}
+                  onValueChange={(value) => setFormData({ ...formData, semester: value })}
+                >
+                  <SelectTrigger id="semester" className="w-full">
+                    <SelectValue placeholder="Select semester (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1st Semester">1st Semester</SelectItem>
+                    <SelectItem value="2nd Semester">2nd Semester</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Optional: Select the semester for this folder.
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="deadline">Deadline</Label>
+                <Input
+                  id="deadline"
+                  type="datetime-local"
+                  value={formData.deadline}
+                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Optional deadline for this folder.
+                </p>
+              </div>
+              
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {selectedFolder ? "Update Folder" : "Create Folder"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                Confirm Deletion
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete the folder "{selectedFolder?.name}"?
+                <strong className="block mt-2 text-destructive">
+                  This will also delete all documents assigned to this folder.
+                </strong>
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            
+            <AlertDialogFooter className="pt-4">
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Folder"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
