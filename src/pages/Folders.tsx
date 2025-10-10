@@ -542,7 +542,7 @@ const Folders = () => {
         
         {/* View Folder Dialog */}
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
              <DialogHeader>
                <DialogTitle>{viewedFolder?.name}</DialogTitle>
                <DialogDescription>
@@ -551,30 +551,40 @@ const Folders = () => {
              </DialogHeader>
             
             <div className="space-y-6 py-4">
-              {/* Statistics Table */}
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-muted/50">
-                      <th className="p-4 text-left font-medium">Total Instructors</th>
-                      <th className="p-4 text-left font-medium">Total Submissions</th>
-                      <th className="p-4 text-left font-medium">Ontime</th>
-                      <th className="p-4 text-left font-medium">Late</th>
-                      <th className="p-4 text-left font-medium">Submission Rate</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="p-4 text-center font-bold text-lg">{folderStats.totalInstructors}</td>
-                      <td className="p-4 text-center font-bold text-lg">{folderStats.totalSubmissions}</td>
-                      <td className="p-4 text-center font-bold text-lg text-green-600 dark:text-green-400">{folderStats.ontime}</td>
-                      <td className="p-4 text-center font-bold text-lg text-red-600 dark:text-red-400">{folderStats.late}</td>
-                      <td className="p-4 text-center font-bold text-lg text-primary">{folderStats.rate}%</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+              {/* Statistics Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="border rounded-lg p-4 bg-muted/50">
+                  <Label className="text-xs text-muted-foreground">Total Instructors</Label>
+                  <p className="text-2xl font-bold mt-1">{folderStats.totalInstructors}</p>
+                </div>
+                
+                <div className="border rounded-lg p-4 bg-muted/50">
+                  <Label className="text-xs text-muted-foreground">Total Submissions</Label>
+                  <p className="text-2xl font-bold mt-1">{folderStats.totalSubmissions}</p>
+                </div>
+                
+                <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-950/20">
+                  <Label className="text-xs text-muted-foreground">Ontime</Label>
+                  <p className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">
+                    {folderStats.ontime}
+                  </p>
+                </div>
+                
+                <div className="border rounded-lg p-4 bg-red-50 dark:bg-red-950/20">
+                  <Label className="text-xs text-muted-foreground">Late</Label>
+                  <p className="text-2xl font-bold mt-1 text-red-600 dark:text-red-400">
+                    {folderStats.late}
+                  </p>
+                </div>
+                
+                <div className="border rounded-lg p-4 bg-primary/10 col-span-2">
+                  <Label className="text-xs text-muted-foreground">Submission Rate</Label>
+                  <p className="text-2xl font-bold mt-1 text-primary">
+                    {folderStats.rate}%
+                  </p>
+                </div>
+               </div>
+             </div>
              
              <DialogFooter>
                <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
