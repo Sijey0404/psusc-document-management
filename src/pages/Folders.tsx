@@ -373,6 +373,13 @@ const Folders = () => {
                         <Button
                           variant="outline"
                           size="icon"
+                          title="View"
+                        >
+                          View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
                           onClick={() => handleEdit(folder)}
                           title="Edit folder"
                         >
