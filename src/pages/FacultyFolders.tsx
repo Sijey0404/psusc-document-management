@@ -39,10 +39,8 @@ const FacultyFolders = () => {
   const [selectedFolder, setSelectedFolder] = useState<DocumentCategory | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
-
   const [semesterFilter, setSemesterFilter] = useState<string | null>(null);
-  const [schoolYearFilter, setSchoolYearFilter] = useState<string>("");
-
+  const [schoolYearFilter, setSchoolYearFilter] = useState<string>(""); // NEW state for School Year filter
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documentTitle, setDocumentTitle] = useState("");
   const [documentDescription, setDocumentDescription] = useState("");
@@ -81,27 +79,38 @@ const FacultyFolders = () => {
   useEffect(() => {
     fetchFolders();
   }, [folderIdFromUrl]);
-
-  // Apply filters when semesterFilter or schoolYearFilter changes
+  
+  // Apply filters whenever semesterFilter or schoolYearFilter changes
   useEffect(() => {
     let filtered = folders;
 
-    if (semesterFilter && semesterFilter !== "all") {
-      filtered = filtered.filter(folder => folder.semester === semesterFilter);
+    if (semesterFilter) {
+      filtered = filtered.filter(folder =>
+        semesterFilter === "all" || folder.semester === semesterFilter
+      );
     }
 
     if (schoolYearFilter.trim() !== "") {
       filtered = filtered.filter(folder => {
         if (!folder.deadline) return false;
-        const year = new Date(folder.deadline).getFullYear().toString();
-        return year.includes(schoolYearFilter.trim());
+        const deadlineYear = new Date(folder.deadline).getFullYear().toString();
+        return deadlineYear.includes(schoolYearFilter.trim());
       });
     }
 
     setFilteredFolders(filtered);
   }, [semesterFilter, schoolYearFilter, folders]);
-
-  const clearFilters = () => {
+  
+  useEffect(() => {
+    console.log("Button state debug:", { 
+      uploading, 
+      documentTitleTrimmed: documentTitle.trim(), 
+      selectedFile: selectedFile?.name || null, 
+      buttonDisabled: uploading || !documentTitle.trim() || !selectedFile 
+    });
+  }, [uploading, documentTitle, selectedFile]);
+  
+  const clearFilter = () => {
     setSemesterFilter(null);
     setSchoolYearFilter("");
   };
@@ -127,7 +136,8 @@ const FacultyFolders = () => {
       setSelectedFile(null);
       return;
     }
-    setSelectedFile(e.target.files[0]);
+    const file = e.target.files[0];
+    setSelectedFile(file);
   };
 
   const handleUpload = async () => {
@@ -173,9 +183,7 @@ const FacultyFolders = () => {
       setDocumentTitle("");
       setDocumentDescription("");
       setSelectedFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
       handleCloseDialog();
     } catch (error: any) {
       toast({
@@ -189,7 +197,9 @@ const FacultyFolders = () => {
   };
 
   const triggerFileInput = () => {
-    fileInputRef.current?.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   return (
@@ -208,44 +218,41 @@ const FacultyFolders = () => {
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 space-y-2 p-2">
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">Semester</Label>
-                  <DropdownMenuItem onClick={() => setSemesterFilter("all")}>
-                    All Semesters
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSemesterFilter("1st Semester")}>
-                    1st Semester
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSemesterFilter("2nd Semester")}>
-                    2nd Semester
-                  </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-64 p-2 space-y-2">
+                <div className="px-2">
+                  <Label className="text-xs text-muted-foreground">Semester</Label>
                 </div>
+                <DropdownMenuItem onClick={() => setSemesterFilter("all")}>
+                  All Semesters
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSemesterFilter("1st Semester")}>
+                  1st Semester
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSemesterFilter("2nd Semester")}>
+                  2nd Semester
+                </DropdownMenuItem>
 
-                <div className="border-t my-2"></div>
-
-                <div>
-                  <Label htmlFor="schoolYearFilter" className="text-xs text-muted-foreground mb-1 block">
+                <div className="px-2 pt-2">
+                  <Label htmlFor="schoolYearFilter" className="text-xs text-muted-foreground">
                     School Year
                   </Label>
                   <Input
                     id="schoolYearFilter"
-                    placeholder="e.g. 2024"
+                    placeholder="e.g. 2025"
                     value={schoolYearFilter}
                     onChange={(e) => setSchoolYearFilter(e.target.value)}
+                    className="mt-1 h-8"
                   />
                 </div>
 
                 {(semesterFilter || schoolYearFilter) && (
-                  <div className="border-t mt-2 pt-2">
-                    <DropdownMenuItem 
-                      onClick={clearFilters}
-                      className="text-destructive"
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Clear Filters
-                    </DropdownMenuItem>
-                  </div>
+                  <DropdownMenuItem 
+                    onClick={clearFilter}
+                    className="border-t mt-1 text-destructive"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Clear All Filters
+                  </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -254,11 +261,11 @@ const FacultyFolders = () => {
         
         {(semesterFilter || schoolYearFilter) && (
           <div className="bg-muted/50 p-2 px-4 rounded-md flex justify-between items-center text-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">Active filters:</span>
-              {semesterFilter && semesterFilter !== "all" && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium">Active filter:</span>
+              {semesterFilter && (
                 <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
-                  {semesterFilter}
+                  {semesterFilter === "all" ? "All Semesters" : semesterFilter}
                 </span>
               )}
               {schoolYearFilter && (
@@ -267,7 +274,7 @@ const FacultyFolders = () => {
                 </span>
               )}
             </div>
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 gap-1">
+            <Button variant="ghost" size="sm" onClick={clearFilter} className="h-8 gap-1">
               <X className="h-4 w-4" /> Clear
             </Button>
           </div>
