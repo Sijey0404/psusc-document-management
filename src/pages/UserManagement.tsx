@@ -125,6 +125,8 @@ const UserManagement = () => {
     if (!showArchived) {
       fetchDepartments();
     }
+    // Clear search when switching between active and archived users
+    setSearchQuery("");
   }, [showArchived]);
 
   const fetchDepartments = async () => {
@@ -350,7 +352,7 @@ const UserManagement = () => {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search users by name, email, position, or department..."
+              placeholder={`Search ${showArchived ? 'archived ' : ''}users by name, email, position, or department...`}
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -358,7 +360,7 @@ const UserManagement = () => {
           </div>
           <div className="flex items-center gap-2 ml-4">
             <p className="text-sm text-muted-foreground">
-              {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} found
+              {filteredUsers.length} {showArchived ? 'archived ' : ''}user{filteredUsers.length !== 1 ? 's' : ''} found
             </p>
             {searchQuery && (
               <Button

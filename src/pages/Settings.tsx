@@ -7,8 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, Shield, Phone, Moon, Sun, Monitor, Mail, MessageCircle, Lock, Loader2, Eye, EyeOff, KeyRound, AlertCircle } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Settings as SettingsIcon, Shield, Phone, Mail, MessageCircle, Lock, Loader2, Eye, EyeOff, KeyRound, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -36,10 +35,8 @@ type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 const Settings = () => {
   const { isAdmin, signOut } = useAuth();
-  const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [mounted, setMounted] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -111,9 +108,6 @@ const Settings = () => {
     }
   };
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
   const handlePermissionChange = (key: keyof typeof permissions) => {
     setPermissions(prev => ({
       ...prev,
@@ -350,35 +344,6 @@ const Settings = () => {
               </div>
             </div>
 
-            {/* Dark Mode */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Moon className="h-5 w-5 text-royal" />
-                <h3 className="text-lg font-semibold text-royal">Theme Preferences</h3>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Choose your preferred theme appearance
-              </p>
-              <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                {mounted && <div className="grid grid-cols-3 gap-3">
-                    <Button variant={theme === 'light' ? 'default' : 'outline'} size="sm" onClick={() => setTheme('light')} className="flex items-center gap-2">
-                      <Sun className="h-4 w-4" />
-                      Light
-                    </Button>
-                    <Button variant={theme === 'dark' ? 'default' : 'outline'} size="sm" onClick={() => setTheme('dark')} className="flex items-center gap-2">
-                      <Moon className="h-4 w-4" />
-                      Dark
-                    </Button>
-                    <Button variant={theme === 'system' ? 'default' : 'outline'} size="sm" onClick={() => setTheme('system')} className="flex items-center gap-2">
-                      <Monitor className="h-4 w-4" />
-                      System
-                    </Button>
-                  </div>}
-                <p className="text-xs text-muted-foreground mt-2">
-                  Current theme: {mounted ? theme : 'Loading...'}
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
