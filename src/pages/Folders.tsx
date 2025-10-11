@@ -258,7 +258,7 @@ const Folders = () => {
   const [showUploadersDialog, setShowUploadersDialog] = useState(false);
   const [loadingUploaders, setLoadingUploaders] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{name: string, email: string, user_id: string} | null>(null);
-  const [userFiles, setUserFiles] = useState<Array<{title: string, status: string, created_at: string, file_type: string}>>([]);
+  const [userFiles, setUserFiles] = useState<Array<{title: string, status: string, created_at: string, file_type: string, file_path: string}>>([]);
   const [loadingUserFiles, setLoadingUserFiles] = useState(false);
 
   const handleView = async (folder: Folder) => {
@@ -367,7 +367,7 @@ const Folders = () => {
       setLoadingUserFiles(true);
       const { data, error } = await supabase
         .from("documents")
-        .select("title, status, created_at, file_type")
+        .select("title, status, created_at, file_type, file_path")
         .eq("category_id", folderId)
         .eq("submitted_by", userId)
         .order("created_at", { ascending: false });
@@ -391,6 +391,42 @@ const Folders = () => {
     if (viewedFolder) {
       await fetchUserFiles(user.user_id, viewedFolder.id);
     }
+  };
+
+  const handleDocumentClick = async (filePath: string, fileName: string) => {
+    try {
+      // Get the file from Supabase storage
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+      
+      if (error) throw error;
+      
+      // Create a blob URL and trigger download
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      toast({
+        title: "Error downloading file",
+        description: error.message || "Failed to download the file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getFileExtension = (fileType: string) => {
+    if (fileType.includes('pdf')) return 'PDF';
+    if (fileType.includes('wordprocessingml')) return 'DOCX';
+    if (fileType.includes('presentationml')) return 'PPTX';
+    if (fileType.includes('spreadsheetml')) return 'XLSX';
+    if (fileType.includes('image')) return 'IMAGE';
+    return 'FILE';
   };
 
   return (
@@ -756,14 +792,18 @@ const Folders = () => {
                           ) : (
                             <div className="space-y-2">
                               {userFiles.map((file, fileIndex) => (
-                                <div key={fileIndex} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                                <div 
+                                  key={fileIndex} 
+                                  className="flex items-center justify-between p-3 border rounded-lg bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                                  onClick={() => handleDocumentClick(file.file_path, file.title)}
+                                >
                                   <div className="flex-1">
-                                    <p className="font-medium">{file.title}</p>
+                                    <p className="font-medium text-primary hover:underline">{file.title}</p>
                                     <p className="text-sm text-muted-foreground">
-                                      {file.file_type} • {format(new Date(file.created_at), "MMM dd, yyyy 'at' h:mm a")}
+                                      Submitted to "{viewedFolder?.name}" • {getFileExtension(file.file_type)} • {format(new Date(file.created_at), "MMM dd, yyyy 'at' h:mm a")}
                                     </p>
                                   </div>
-                                  <div className="ml-4">
+                                  <div className="ml-4 flex items-center gap-2">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                       file.status === 'APPROVED' 
                                         ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
@@ -773,6 +813,7 @@ const Folders = () => {
                                     }`}>
                                       {file.status}
                                     </span>
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
                                   </div>
                                 </div>
                               ))}
