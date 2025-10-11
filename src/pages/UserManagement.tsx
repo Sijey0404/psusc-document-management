@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
   TableBody,
@@ -196,20 +195,13 @@ const UserManagement = () => {
     setFormLoading(true);
 
     try {
-      const result = await UserService.createUser({
+      await UserService.createUser({
         name: formData.name,
         email: formData.email,
         role: formData.role,
         position: formData.position,
         department_id: formData.department_id || undefined,
         password: formData.password || "psu3du123",
-      });
-
-      // Create notification for the new user
-      await supabase.from('notifications').insert({
-        user_id: result.user.id,
-        message: `Your account has been created! You can log in with your email and password: ${formData.password || "psu3du123"}. Please change your password after logging in.`,
-        related_document_id: null
       });
 
       toast({

@@ -114,13 +114,6 @@ export const PendingUserService = {
         .eq('id', result.user.id);
       if (profileUpdateError) throw profileUpdateError;
 
-      // Create notification for the approved user
-      await supabase.from('notifications').insert({
-        user_id: result.user.id,
-        message: `Your account has been approved! You can now log in with your email and the default password: ${pendingUser.default_password}. Please change your password after logging in.`,
-        related_document_id: null
-      });
-
       return result;
     } catch (error) {
       console.error('Error approving pending user:', error);

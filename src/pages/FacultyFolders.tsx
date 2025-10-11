@@ -142,7 +142,7 @@ const FacultyFolders = () => {
       
       if (uploadError) throw uploadError;
       
-      const { data: newDocument, error: dbError } = await supabase.from("documents").insert({
+      const { error: dbError } = await supabase.from("documents").insert({
         title: documentTitle,
         description: documentDescription,
         file_path: filePath,
@@ -152,26 +152,9 @@ const FacultyFolders = () => {
         status: "PENDING",
         department_id: profile.department_id,
         submitted_by: profile.id
-      }).select().single();
+      });
       
       if (dbError) throw dbError;
-      
-      // Notify all admins about the new document upload
-      const { data: admins, error: adminError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', true)
-        .eq('archived', false);
-        
-      if (!adminError && admins && admins.length > 0) {
-        const notifications = admins.map(admin => ({
-          user_id: admin.id,
-          message: `${profile.name} uploaded a new document "${documentTitle}" to folder "${selectedFolder.name}".`,
-          related_document_id: newDocument.id
-        }));
-        
-        await supabase.from('notifications').insert(notifications);
-      }
       
       toast({
         title: "Upload successful",
