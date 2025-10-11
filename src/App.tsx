@@ -86,12 +86,12 @@ const App = () => (
             <Routes>
             {/* Public routes */}
             <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             
             {/* Auth routes (redirect if authenticated) */}
             <Route element={<AuthRoute />}>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
             </Route>
             
             {/* Admin routes */}

@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, Shield, Phone, Moon, Sun, Monitor, Mail, MessageCircle, Lock, Loader2, Eye, EyeOff, KeyRound } from "lucide-react";
+import { Settings as SettingsIcon, Shield, Phone, Moon, Sun, Monitor, Mail, MessageCircle, Lock, Loader2, Eye, EyeOff, KeyRound, AlertCircle } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +35,7 @@ const passwordSchema = z.object({
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 const Settings = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -48,6 +49,8 @@ const Settings = () => {
     departmentDocuments: false,
     privateDocuments: true
   });
+  const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const passwordForm = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -116,6 +119,28 @@ const Settings = () => {
       ...prev,
       [key]: !prev[key]
     }));
+  };
+
+  const handleResetPassword = async () => {
+    try {
+      setIsLoggingOut(true);
+      await signOut();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out and redirected to password reset",
+      });
+      navigate('/forgot-password');
+    } catch (error) {
+      console.error("Error logging out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoggingOut(false);
+      setShowResetPasswordDialog(false);
+    }
   };
   return <AppLayout isAdmin={isAdmin}>
       <div className="max-w-3xl mx-auto">
@@ -317,7 +342,7 @@ const Settings = () => {
                 <Button 
                   variant="outline" 
                   className="w-full justify-start"
-                  onClick={() => navigate('/forgot-password')}
+                  onClick={() => setShowResetPasswordDialog(true)}
                 >
                   <KeyRound className="mr-2 h-4 w-4" />
                   Reset Password
@@ -357,6 +382,40 @@ const Settings = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Reset Password Confirmation Dialog */}
+      <AlertDialog open={showResetPasswordDialog} onOpenChange={setShowResetPasswordDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Confirm Password Reset
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to reset your password? This will log you out of your account and redirect you to the password reset page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoggingOut}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleResetPassword}
+              disabled={isLoggingOut}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Logging out...
+                </>
+              ) : (
+                "Yes, Reset Password"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>;
 };
 export default Settings;
