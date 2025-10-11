@@ -31,7 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye, FileText, Loader2, ExternalLink } from "lucide-react";
+import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye, FileText, Loader2, ExternalLink, Download } from "lucide-react";
 import { format } from "date-fns";
 import { 
   DropdownMenu,
@@ -409,6 +409,10 @@ const Folders = () => {
       });
       
       const uploaders = Array.from(uniqueUsers.values());
+      
+      // Sort uploaders alphabetically by name
+      uploaders.sort((a, b) => a.name.localeCompare(b.name));
+      
       setDocumentUploaders(uploaders);
       setShowUploadersDialog(true);
     } catch (error: any) {
@@ -477,6 +481,44 @@ const Folders = () => {
       toast({
         title: "Error viewing file",
         description: error.message || "Failed to open the file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDocumentDownload = async (filePath: string, fileName: string) => {
+    try {
+      // Get a signed URL for the file that expires in 1 hour
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(filePath, 3600);
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (!data?.signedUrl) {
+        throw new Error('Could not get signed URL for file');
+      }
+      
+      // Create a temporary link element and click it to download
+      const link = document.createElement('a');
+      link.href = data.signedUrl;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Download started",
+        description: `Downloading ${fileName}`,
+      });
+      
+    } catch (error: any) {
+      toast({
+        title: "Error downloading file",
+        description: error.message || "Failed to download the file",
         variant: "destructive",
       });
     }
@@ -874,6 +916,15 @@ const Folders = () => {
                                     >
                                       <ExternalLink className="h-3 w-3" />
                                       View
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDocumentDownload(file.file_path, file.title)}
+                                      className="flex items-center gap-1"
+                                    >
+                                      <Download className="h-3 w-3" />
+                                      Download
                                     </Button>
                                   </div>
                                 </div>
