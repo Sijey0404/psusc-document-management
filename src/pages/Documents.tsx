@@ -51,7 +51,7 @@ const Documents = () => {
   const [documentUploaders, setDocumentUploaders] = useState<Array<{name: string, email: string, uploaded_at: string, user_id: string}>>([]);
   const [loadingUploaders, setLoadingUploaders] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{name: string, email: string, user_id: string} | null>(null);
-  const [userFiles, setUserFiles] = useState<Array<{id: string, title: string, status: string, created_at: string, file_type: string, file_path: string}>>([]);
+  const [userFiles, setUserFiles] = useState<Array<{id: string, title: string, status: string, created_at: string, file_type: string, file_path: string, feedback: string | null}>>([]);
   const [loadingUserFiles, setLoadingUserFiles] = useState(false);
   
   // Rejection dialog state
@@ -220,7 +220,7 @@ const Documents = () => {
       setLoadingUserFiles(true);
       const { data, error } = await supabase
         .from("documents")
-        .select("id, title, status, created_at, file_type, file_path")
+        .select("id, title, status, created_at, file_type, file_path, feedback")
         .eq("submitted_by", userId)
         .order("created_at", { ascending: false });
         
@@ -729,6 +729,18 @@ const Documents = () => {
                           </div>
                         )}
                       </div>
+                      
+                      {file.status === 'REJECTED' && !isAdmin && file.feedback && (
+                        <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <X className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-red-800 dark:text-red-200">Rejection Feedback:</p>
+                              <p className="text-sm text-red-700 dark:text-red-300 mt-1">{file.feedback}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
