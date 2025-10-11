@@ -31,7 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye, FileText, Loader2, Download, ExternalLink } from "lucide-react";
+import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye, FileText, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { 
   DropdownMenu,
@@ -393,7 +393,7 @@ const Folders = () => {
     }
   };
 
-  const handleDocumentDownload = async (filePath: string, fileName: string) => {
+  const handleDocumentClick = async (filePath: string, fileName: string) => {
     try {
       // Get the file from Supabase storage
       const { data, error } = await supabase.storage
@@ -415,43 +415,6 @@ const Folders = () => {
       toast({
         title: "Error downloading file",
         description: error.message || "Failed to download the file",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDocumentView = async (filePath: string, fileName: string) => {
-    try {
-      // Get a signed URL for the file that expires in 1 hour
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(filePath, 3600);
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (!data?.signedUrl) {
-        throw new Error('Could not get signed URL for file');
-      }
-      
-      // Open the file in a new tab using the signed URL
-      const newWindow = window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-      
-      // If popup was blocked, show error message
-      if (!newWindow) {
-        toast({
-          title: "Popup blocked",
-          description: "Please allow popups for this site to view files",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-    } catch (error: any) {
-      toast({
-        title: "Error viewing file",
-        description: error.message || "Failed to open the file",
         variant: "destructive",
       });
     }
@@ -831,46 +794,26 @@ const Folders = () => {
                               {userFiles.map((file, fileIndex) => (
                                 <div 
                                   key={fileIndex} 
-                                  className="p-3 border rounded-lg bg-muted/30"
+                                  className="flex items-center justify-between p-3 border rounded-lg bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                                  onClick={() => handleDocumentClick(file.file_path, file.title)}
                                 >
-                                  <div className="flex items-start justify-between mb-2">
-                                    <div className="flex-1">
-                                      <p className="font-medium">{file.title}</p>
-                                      <p className="text-sm text-muted-foreground">
-                                        Submitted to "{viewedFolder?.name}" • {getFileExtension(file.file_type)} • {format(new Date(file.created_at), "MMM dd, yyyy 'at' h:mm a")}
-                                      </p>
-                                    </div>
-                                    <div className="ml-4 flex items-center gap-2">
-                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                        file.status === 'APPROVED' 
-                                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                                          : file.status === 'REJECTED'
-                                          ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                                      }`}>
-                                        {file.status}
-                                      </span>
-                                    </div>
+                                  <div className="flex-1">
+                                    <p className="font-medium text-primary hover:underline">{file.title}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Submitted to "{viewedFolder?.name}" • {getFileExtension(file.file_type)} • {format(new Date(file.created_at), "MMM dd, yyyy 'at' h:mm a")}
+                                    </p>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleDocumentView(file.file_path, file.title)}
-                                      className="flex items-center gap-1"
-                                    >
-                                      <ExternalLink className="h-3 w-3" />
-                                      View
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleDocumentDownload(file.file_path, file.title)}
-                                      className="flex items-center gap-1"
-                                    >
-                                      <Download className="h-3 w-3" />
-                                      Download
-                                    </Button>
+                                  <div className="ml-4 flex items-center gap-2">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      file.status === 'APPROVED' 
+                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                        : file.status === 'REJECTED'
+                                        ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                                    }`}>
+                                      {file.status}
+                                    </span>
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
                                   </div>
                                 </div>
                               ))}
