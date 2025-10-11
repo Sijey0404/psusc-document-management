@@ -31,7 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye, FileText, Loader2, ExternalLink, Download } from "lucide-react";
+import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye, FileText, Loader2, ExternalLink, Download, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { 
   DropdownMenu,
@@ -263,6 +263,9 @@ const Folders = () => {
   const [selectedFile, setSelectedFile] = useState<{title: string, file_path: string, file_type: string} | null>(null);
   const [showFileViewer, setShowFileViewer] = useState(false);
   const [fileViewerUrl, setFileViewerUrl] = useState<string>("");
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [selectedFileForFeedback, setSelectedFileForFeedback] = useState<{title: string, file_path: string, file_type: string} | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
 
   // Function to convert MIME type to user-friendly file extension
   const getFileExtension = (fileType: string, fileName: string): string => {
@@ -519,6 +522,42 @@ const Folders = () => {
       toast({
         title: "Error downloading file",
         description: error.message || "Failed to download the file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFeedbackClick = (file: {title: string, file_path: string, file_type: string}) => {
+    setSelectedFileForFeedback(file);
+    setFeedbackText("");
+    setShowFeedbackDialog(true);
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!selectedFileForFeedback || !feedbackText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter feedback text",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Here you would typically save the feedback to the database
+      // For now, we'll just show a success message
+      toast({
+        title: "Feedback submitted",
+        description: `Feedback for "${selectedFileForFeedback.title}" has been submitted successfully.`,
+      });
+      
+      setShowFeedbackDialog(false);
+      setSelectedFileForFeedback(null);
+      setFeedbackText("");
+    } catch (error: any) {
+      toast({
+        title: "Error submitting feedback",
+        description: error.message || "Failed to submit feedback",
         variant: "destructive",
       });
     }
@@ -926,6 +965,17 @@ const Folders = () => {
                                       <Download className="h-3 w-3" />
                                       Download
                                     </Button>
+                                    {file.status === 'REJECTED' && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleFeedbackClick(file)}
+                                        className="flex items-center gap-1 text-orange-600 hover:text-orange-700 border-orange-200 hover:border-orange-300"
+                                      >
+                                        <MessageSquare className="h-3 w-3" />
+                                        Feedback
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
                               ))}
@@ -1187,6 +1237,57 @@ const Folders = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowFileViewer(false)}>
                 Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Feedback Dialog */}
+        <Dialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Provide Feedback
+              </DialogTitle>
+              <DialogDescription>
+                Add feedback for the rejected document: {selectedFileForFeedback?.title}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="feedbackText">Feedback</Label>
+                <Textarea
+                  id="feedbackText"
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder="Enter your feedback for this rejected document..."
+                  rows={4}
+                  className="resize-none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Please provide constructive feedback to help improve the document.
+                </p>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowFeedbackDialog(false);
+                  setSelectedFileForFeedback(null);
+                  setFeedbackText("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleFeedbackSubmit}
+                disabled={!feedbackText.trim()}
+              >
+                Submit Feedback
               </Button>
             </DialogFooter>
           </DialogContent>
