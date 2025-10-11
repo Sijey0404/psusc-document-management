@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RecentNotificationsList } from "@/components/dashboard/RecentNotificationsList";
 import { Notification } from "@/types";
+import { notificationService } from "@/services/notificationService";
 
 export const NotificationDropdown = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -21,35 +22,20 @@ export const NotificationDropdown = () => {
   const { toast } = useToast();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (forceRefresh = false) => {
     if (!user || !isAdmin) return;
     
     try {
       setIsLoading(true);
+      console.log("Fetching notifications for admin user:", user.id, "forceRefresh:", forceRefresh);
       
-      // Fetch notifications from the notifications table
-      const { data: notifData, error: notifError } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      if (notifError) throw notifError;
-      
-      // Transform notifications data
-      const notificationsList: Notification[] = (notifData || []).map((notif: any) => ({
-        id: notif.id,
-        user_id: notif.user_id,
-        message: notif.message,
-        created_at: notif.created_at,
-        read: notif.read,
-        type: notif.type || 'GENERAL',
-        reference_id: notif.reference_id || notif.related_document_id || ''
-      }));
+      const notificationsList = await notificationService.fetchNotifications(user.id, forceRefresh);
       
       setNotifications(notificationsList);
-      setUnreadCount(notificationsList.filter(n => !n.read).length);
+      const unreadCount = notificationService.getUnreadCount(notificationsList);
+      setUnreadCount(unreadCount);
+      console.log("Admin unread notifications count:", unreadCount);
+      console.log("Admin notifications read status:", notificationsList.map(n => ({ id: n.id, read: n.read })));
     } catch (error: any) {
       console.error("Error fetching notifications:", error);
       toast({
@@ -99,18 +85,18 @@ export const NotificationDropdown = () => {
     if (!user) return;
     
     try {
-      // Update all unread notifications for this user to read
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', user.id)
-        .eq('read', false);
+      console.log("Marking all notifications as read for admin user:", user.id);
       
-      if (error) throw error;
+      await notificationService.markAllAsRead(user.id);
       
-      // Update local state
+      // Update local state immediately
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
+      
+      // Force a refresh to ensure consistency
+      setTimeout(() => {
+        fetchNotifications(true);
+      }, 1000);
       
       toast({
         title: "Success",

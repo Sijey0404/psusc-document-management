@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RecentNotificationsList } from "@/components/dashboard/RecentNotificationsList";
 import { Notification } from "@/types";
+import { notificationService } from "@/services/notificationService";
 
 export const FacultyNotificationDropdown = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -21,47 +22,22 @@ export const FacultyNotificationDropdown = () => {
   const { toast } = useToast();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (forceRefresh = false) => {
     if (!user) return;
     
     try {
       setIsLoading(true);
-      console.log("Fetching notifications for user:", user.id);
+      console.log("Fetching notifications for user:", user.id, "forceRefresh:", forceRefresh);
       
-      // Fetch user notifications from the notifications table
-      const { data: notificationsData, error: notificationsError } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      
-      if (notificationsError) {
-        console.error("Error fetching notifications:", notificationsError);
-        throw notificationsError;
-      }
-      
-      console.log("Fetched notifications:", notificationsData?.length);
-      
-      // Transform the data to ensure all required properties are present
-      const formattedNotifications: Notification[] = (notificationsData || []).map(notification => ({
-        id: notification.id,
-        user_id: notification.user_id,
-        message: notification.message,
-        created_at: notification.created_at,
-        read: notification.read,
-        related_document_id: notification.related_document_id,
-        // Add required fields that don't exist in the database schema
-        type: determineNotificationType(notification.message),
-        reference_id: notification.related_document_id || notification.id.toString()
-      }));
+      const formattedNotifications = await notificationService.fetchNotifications(user.id, forceRefresh);
       
       setNotifications(formattedNotifications);
       
       // Count unread notifications
-      const unread = formattedNotifications.filter(notification => !notification.read).length;
+      const unread = notificationService.getUnreadCount(formattedNotifications);
       setUnreadCount(unread);
-      console.log("Unread notifications:", unread);
+      console.log("Unread notifications count:", unread);
+      console.log("All notifications read status:", formattedNotifications.map(n => ({ id: n.id, read: n.read })));
     } catch (error: any) {
       console.error("Error fetching faculty notifications:", error);
       toast({
@@ -133,25 +109,20 @@ export const FacultyNotificationDropdown = () => {
     if (!user || notifications.length === 0) return;
     
     try {
-      console.log("Marking all notifications as read");
+      console.log("Marking all notifications as read for user:", user.id);
       
-      // Update all unread notifications for this user in the database
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', user.id)
-        .eq('read', false);
-        
-      if (error) {
-        console.error("Database error:", error);
-        throw error;
-      }
+      await notificationService.markAllAsRead(user.id);
       
-      // Update UI state
+      // Update UI state immediately
       setUnreadCount(0);
       setNotifications(prev => 
         prev.map(notification => ({ ...notification, read: true }))
       );
+      
+      // Force a refresh to ensure consistency
+      setTimeout(() => {
+        fetchNotifications(true);
+      }, 1000);
       
       toast({
         title: "Success",
