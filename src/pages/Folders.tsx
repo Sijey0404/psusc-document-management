@@ -408,16 +408,38 @@ const Folders = () => {
         throw new Error('Could not get signed URL for file');
       }
       
-      // Create a temporary link element and click it to open in new tab
-      // This approach is less likely to be blocked by popup blockers
-      const link = document.createElement('a');
-      link.href = data.signedUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Get file extension to determine if it's viewable in browser
+      const fileExtension = fileName.split('.').pop()?.toLowerCase();
+      const viewableExtensions = ['pdf', 'txt', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+      
+      if (fileExtension && viewableExtensions.includes(fileExtension)) {
+        // For viewable files, open in new tab with proper headers
+        const newWindow = window.open('', '_blank', 'noopener,noreferrer');
+        if (newWindow) {
+          newWindow.location.href = data.signedUrl;
+        } else {
+          // Fallback to direct navigation if popup is blocked
+          window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+        }
+      } else {
+        // For non-viewable files, show a message and offer download
+        toast({
+          title: "File Preview Not Available",
+          description: `This file type (${fileExtension || 'unknown'}) cannot be previewed in the browser. Would you like to download it?`,
+          variant: "default",
+        });
+        
+        // Auto-download after a short delay
+        setTimeout(() => {
+          const link = document.createElement('a');
+          link.href = data.signedUrl;
+          link.download = fileName;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }, 2000);
+      }
       
     } catch (error: any) {
       toast({
