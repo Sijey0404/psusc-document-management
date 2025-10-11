@@ -704,43 +704,45 @@ const Documents = () => {
                           </Button>
                         </div>
                         
-                        {file.status === 'PENDING' && isAdmin && (
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleApproveDocument(file.id, file.title)}
-                              disabled={isProcessing}
-                              className="flex items-center gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            >
-                              <Check className="h-3 w-3" />
-                              Approve
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openRejectDialog(file.id, file.title)}
-                              disabled={isProcessing}
-                              className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <X className="h-3 w-3" />
-                              Reject
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {file.status === 'REJECTED' && !isAdmin && file.feedback && (
-                        <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                          <div className="flex items-start gap-2">
-                            <X className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-sm font-medium text-red-800 dark:text-red-200">Rejection Feedback:</p>
-                              <p className="text-sm text-red-700 dark:text-red-300 mt-1">{file.feedback}</p>
+                        <div className="flex items-center gap-2">
+                          {file.status === 'PENDING' && isAdmin && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleApproveDocument(file.id, file.title)}
+                                disabled={isProcessing}
+                                className="flex items-center gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                <Check className="h-3 w-3" />
+                                Approve
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openRejectDialog(file.id, file.title)}
+                                disabled={isProcessing}
+                                className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-3 w-3" />
+                                Reject
+                              </Button>
+                            </>
+                          )}
+                          
+                          {file.status === 'REJECTED' && !isAdmin && file.feedback && (
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                              <X className="h-3 w-3 text-red-500 flex-shrink-0" />
+                              <div className="text-left">
+                                <p className="text-xs font-medium text-red-800 dark:text-red-200">Feedback:</p>
+                                <p className="text-xs text-red-700 dark:text-red-300 max-w-xs truncate" title={file.feedback}>
+                                  {file.feedback}
+                                </p>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
                   ))}
                 </div>
