@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, Shield, FileText, Phone, Moon, Sun, Monitor, Mail, MessageCircle, Lock, Loader2, Eye, EyeOff } from "lucide-react";
+import { Settings as SettingsIcon, Shield, Phone, Moon, Sun, Monitor, Mail, MessageCircle, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -168,61 +168,6 @@ const Settings = () => {
               </div>
             </div>
 
-            {/* Privacy Policy */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-royal" />
-                <h3 className="text-lg font-semibold text-royal">Privacy Policy</h3>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Essential for data protection
-              </p>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start">
-                    <FileText className="mr-2 h-4 w-4" />
-                    View Privacy Policy
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Privacy Policy</DialogTitle>
-                    <DialogDescription>
-                      Our commitment to protecting your data and privacy
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 text-sm">
-                    <div>
-                      <h4 className="font-semibold mb-2">Data Collection</h4>
-                      <p className="text-muted-foreground">
-                        We collect information you provide directly to us, such as when you create an account, 
-                        submit documents, or contact us for support.
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Data Usage</h4>
-                      <p className="text-muted-foreground">
-                        We use your information to provide, maintain, and improve our services, 
-                        process your document submissions, and communicate with you.
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Data Security</h4>
-                      <p className="text-muted-foreground">
-                        We implement appropriate technical and organizational measures to protect 
-                        your personal information against unauthorized access, alteration, disclosure, or destruction.
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Contact Us</h4>
-                      <p className="text-muted-foreground">
-                        If you have any questions about this Privacy Policy, please contact our support team.
-                      </p>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
 
 
             {/* Password Change */}
