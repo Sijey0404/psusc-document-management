@@ -149,13 +149,6 @@ serve(async (req) => {
         
         if (error) throw error;
 
-        // Create notification for the archived user
-        await supabaseClient.from('notifications').insert({
-          user_id: userId,
-          message: "Your account has been archived by an administrator. Please contact support if you believe this is an error.",
-          related_document_id: null
-        });
-
         return new Response(
           JSON.stringify({ message: "User archived successfully" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -170,13 +163,6 @@ serve(async (req) => {
           .eq("id", userId);
         
         if (error) throw error;
-
-        // Create notification for the unarchived user
-        await supabaseClient.from('notifications').insert({
-          user_id: userId,
-          message: "Your account has been restored by an administrator. You can now access the system again.",
-          related_document_id: null
-        });
 
         return new Response(
           JSON.stringify({ message: "User unarchived successfully" }),
