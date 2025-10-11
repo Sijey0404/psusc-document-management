@@ -885,48 +885,193 @@ const Folders = () => {
             <div className="flex-1 min-h-0">
               {fileViewerUrl && (
                 <div className="w-full h-[70vh] border rounded-lg overflow-hidden">
-                  {selectedFile?.file_type.includes('pdf') ? (
-                    <iframe
-                      src={fileViewerUrl}
-                      className="w-full h-full"
-                      title={selectedFile?.title}
-                    />
-                  ) : selectedFile?.file_type.includes('image') ? (
-                    <img
-                      src={fileViewerUrl}
-                      alt={selectedFile?.title}
-                      className="w-full h-full object-contain"
-                    />
-                  ) : selectedFile?.file_type.includes('text') ? (
-                    <iframe
-                      src={fileViewerUrl}
-                      className="w-full h-full"
-                      title={selectedFile?.title}
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full bg-muted/30">
-                      <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Preview Not Available</h3>
-                      <p className="text-muted-foreground text-center mb-4">
-                        This file type ({selectedFile?.file_type}) cannot be previewed in the browser.
-                      </p>
-                      <Button
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = fileViewerUrl;
-                          link.download = selectedFile?.title || 'document';
-                          link.style.display = 'none';
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                        }}
-                        className="flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Download File
-                      </Button>
-                    </div>
-                  )}
+                  {(() => {
+                    const fileType = selectedFile?.file_type.toLowerCase() || '';
+                    const fileName = selectedFile?.title.toLowerCase() || '';
+                    
+                    // PDF files
+                    if (fileType.includes('pdf') || fileName.endsWith('.pdf')) {
+                      return (
+                        <iframe
+                          src={fileViewerUrl}
+                          className="w-full h-full"
+                          title={selectedFile?.title}
+                        />
+                      );
+                    }
+                    
+                    // Image files
+                    if (fileType.includes('image') || 
+                        fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp|svg|ico|tiff)$/)) {
+                      return (
+                        <img
+                          src={fileViewerUrl}
+                          alt={selectedFile?.title}
+                          className="w-full h-full object-contain"
+                        />
+                      );
+                    }
+                    
+                    // Text files
+                    if (fileType.includes('text') || 
+                        fileName.match(/\.(txt|md|json|xml|csv|log|ini|conf)$/)) {
+                      return (
+                        <iframe
+                          src={fileViewerUrl}
+                          className="w-full h-full"
+                          title={selectedFile?.title}
+                        />
+                      );
+                    }
+                    
+                    // HTML files
+                    if (fileType.includes('html') || fileName.endsWith('.html') || fileName.endsWith('.htm')) {
+                      return (
+                        <iframe
+                          src={fileViewerUrl}
+                          className="w-full h-full"
+                          title={selectedFile?.title}
+                        />
+                      );
+                    }
+                    
+                    // Office documents - try Google Docs viewer
+                    if (fileType.includes('wordprocessingml') || 
+                        fileType.includes('spreadsheetml') || 
+                        fileType.includes('presentationml') ||
+                        fileName.match(/\.(doc|docx|xls|xlsx|ppt|pptx)$/)) {
+                      const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileViewerUrl)}&embedded=true`;
+                      return (
+                        <div className="w-full h-full">
+                          <iframe
+                            src={googleViewerUrl}
+                            className="w-full h-full"
+                            title={selectedFile?.title}
+                          />
+                        </div>
+                      );
+                    }
+                    
+                    // Code files
+                    if (fileName.match(/\.(js|ts|jsx|tsx|py|java|cpp|c|h|php|rb|go|rs|swift|kt|scala|r|sql|sh|bash|ps1|bat)$/)) {
+                      return (
+                        <iframe
+                          src={fileViewerUrl}
+                          className="w-full h-full"
+                          title={selectedFile?.title}
+                        />
+                      );
+                    }
+                    
+                    // Video files
+                    if (fileType.includes('video') || 
+                        fileName.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv|3gp)$/)) {
+                      return (
+                        <video
+                          src={fileViewerUrl}
+                          controls
+                          className="w-full h-full"
+                          title={selectedFile?.title}
+                        >
+                          Your browser does not support the video tag.
+                        </video>
+                      );
+                    }
+                    
+                    // Audio files
+                    if (fileType.includes('audio') || 
+                        fileName.match(/\.(mp3|wav|ogg|aac|flac|m4a|wma)$/)) {
+                      return (
+                        <div className="flex flex-col items-center justify-center h-full bg-muted/30">
+                          <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                          <audio
+                            src={fileViewerUrl}
+                            controls
+                            className="w-full max-w-md"
+                            title={selectedFile?.title}
+                          >
+                            Your browser does not support the audio tag.
+                          </audio>
+                          <p className="text-sm text-muted-foreground mt-2">{selectedFile?.title}</p>
+                        </div>
+                      );
+                    }
+                    
+                    // Archive files
+                    if (fileName.match(/\.(zip|rar|7z|tar|gz|bz2)$/)) {
+                      return (
+                        <div className="flex flex-col items-center justify-center h-full bg-muted/30">
+                          <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">Archive File</h3>
+                          <p className="text-muted-foreground text-center mb-4">
+                            This is an archive file. Please download it to extract and view its contents.
+                          </p>
+                          <Button
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = fileViewerUrl;
+                              link.download = selectedFile?.title || 'archive';
+                              link.style.display = 'none';
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Download Archive
+                          </Button>
+                        </div>
+                      );
+                    }
+                    
+                    // Default fallback - try iframe first, then show download option
+                    return (
+                      <div className="w-full h-full">
+                        <iframe
+                          src={fileViewerUrl}
+                          className="w-full h-full"
+                          title={selectedFile?.title}
+                          onError={() => {
+                            // If iframe fails, show download option
+                            const iframe = document.querySelector('iframe[title="' + selectedFile?.title + '"]');
+                            if (iframe) {
+                              iframe.style.display = 'none';
+                              const fallbackDiv = iframe.nextElementSibling as HTMLElement;
+                              if (fallbackDiv) {
+                                fallbackDiv.style.display = 'flex';
+                              }
+                            }
+                          }}
+                        />
+                        <div 
+                          className="hidden flex-col items-center justify-center h-full bg-muted/30"
+                          style={{ display: 'none' }}
+                        >
+                          <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">Preview Not Available</h3>
+                          <p className="text-muted-foreground text-center mb-4">
+                            This file type ({selectedFile?.file_type}) cannot be previewed in the browser.
+                          </p>
+                          <Button
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = fileViewerUrl;
+                              link.download = selectedFile?.title || 'document';
+                              link.style.display = 'none';
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Download File
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
