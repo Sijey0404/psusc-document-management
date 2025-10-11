@@ -260,6 +260,9 @@ const Folders = () => {
   const [selectedUser, setSelectedUser] = useState<{name: string, email: string, user_id: string} | null>(null);
   const [userFiles, setUserFiles] = useState<Array<{title: string, status: string, created_at: string, file_type: string, file_path: string}>>([]);
   const [loadingUserFiles, setLoadingUserFiles] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<{title: string, file_path: string, file_type: string} | null>(null);
+  const [showFileViewer, setShowFileViewer] = useState(false);
+  const [fileViewerUrl, setFileViewerUrl] = useState<string>("");
 
   const handleView = async (folder: Folder) => {
     setViewedFolder(folder);
@@ -393,7 +396,7 @@ const Folders = () => {
     }
   };
 
-  const handleDocumentView = async (filePath: string, fileName: string) => {
+  const handleDocumentView = async (filePath: string, fileName: string, fileType: string) => {
     try {
       // Get a signed URL for the file that expires in 1 hour
       const { data, error } = await supabase.storage
@@ -408,38 +411,10 @@ const Folders = () => {
         throw new Error('Could not get signed URL for file');
       }
       
-      // Get file extension to determine if it's viewable in browser
-      const fileExtension = fileName.split('.').pop()?.toLowerCase();
-      const viewableExtensions = ['pdf', 'txt', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
-      
-      if (fileExtension && viewableExtensions.includes(fileExtension)) {
-        // For viewable files, open in new tab with proper headers
-        const newWindow = window.open('', '_blank', 'noopener,noreferrer');
-        if (newWindow) {
-          newWindow.location.href = data.signedUrl;
-        } else {
-          // Fallback to direct navigation if popup is blocked
-          window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-        }
-      } else {
-        // For non-viewable files, show a message and offer download
-        toast({
-          title: "File Preview Not Available",
-          description: `This file type (${fileExtension || 'unknown'}) cannot be previewed in the browser. Would you like to download it?`,
-          variant: "default",
-        });
-        
-        // Auto-download after a short delay
-        setTimeout(() => {
-          const link = document.createElement('a');
-          link.href = data.signedUrl;
-          link.download = fileName;
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }, 2000);
-      }
+      // Set the selected file and open the viewer
+      setSelectedFile({ title: fileName, file_path: filePath, file_type: fileType });
+      setFileViewerUrl(data.signedUrl);
+      setShowFileViewer(true);
       
     } catch (error: any) {
       toast({
@@ -837,7 +812,7 @@ const Folders = () => {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => handleDocumentView(file.file_path, file.title)}
+                                      onClick={() => handleDocumentView(file.file_path, file.title, file.file_type)}
                                       className="flex items-center gap-1"
                                     >
                                       <ExternalLink className="h-3 w-3" />
@@ -893,6 +868,76 @@ const Folders = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* File Viewer Modal */}
+        <Dialog open={showFileViewer} onOpenChange={setShowFileViewer}>
+          <DialogContent className="max-w-6xl max-h-[90vh] w-full">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                {selectedFile?.title}
+              </DialogTitle>
+              <DialogDescription>
+                Document preview - {selectedFile?.file_type}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex-1 min-h-0">
+              {fileViewerUrl && (
+                <div className="w-full h-[70vh] border rounded-lg overflow-hidden">
+                  {selectedFile?.file_type.includes('pdf') ? (
+                    <iframe
+                      src={fileViewerUrl}
+                      className="w-full h-full"
+                      title={selectedFile?.title}
+                    />
+                  ) : selectedFile?.file_type.includes('image') ? (
+                    <img
+                      src={fileViewerUrl}
+                      alt={selectedFile?.title}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : selectedFile?.file_type.includes('text') ? (
+                    <iframe
+                      src={fileViewerUrl}
+                      className="w-full h-full"
+                      title={selectedFile?.title}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full bg-muted/30">
+                      <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Preview Not Available</h3>
+                      <p className="text-muted-foreground text-center mb-4">
+                        This file type ({selectedFile?.file_type}) cannot be previewed in the browser.
+                      </p>
+                      <Button
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = fileViewerUrl;
+                          link.download = selectedFile?.title || 'document';
+                          link.style.display = 'none';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Download File
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowFileViewer(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
