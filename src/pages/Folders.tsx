@@ -260,11 +260,12 @@ const Folders = () => {
     setViewDialogOpen(true);
     
     try {
-      // Fetch total instructors (faculty members)
+      // Fetch total instructors (faculty members) - only active accounts
       const { count: instructorCount } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true })
-        .eq("role", false);
+        .eq("role", false)
+        .eq("archived", false);
       
       // Fetch all submissions for this folder
       const { data: submissions, error } = await supabase
