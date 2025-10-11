@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { FileText, Plus, Search, CheckCircle } from "lucide-react";
+import { FileText, Plus, Search, CheckCircle, ExternalLink, Download, Loader2, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { StatusBadge } from "@/components/document/StatusBadge";
 import { FilterDropdown } from "@/components/document/FilterDropdown";
@@ -21,6 +21,7 @@ import { Document } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
+import { format } from "date-fns";
 
 const Documents = () => {
   const navigate = useNavigate();
@@ -34,6 +35,71 @@ const Documents = () => {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
   const [isPendingOnly, setIsPendingOnly] = useState(false);
+  
+  // New state for user-based view
+  const [showUserView, setShowUserView] = useState(true);
+  const [documentUploaders, setDocumentUploaders] = useState<Array<{name: string, email: string, uploaded_at: string, user_id: string}>>([]);
+  const [loadingUploaders, setLoadingUploaders] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<{name: string, email: string, user_id: string} | null>(null);
+  const [userFiles, setUserFiles] = useState<Array<{title: string, status: string, created_at: string, file_type: string, file_path: string}>>([]);
+  const [loadingUserFiles, setLoadingUserFiles] = useState(false);
+
+  // Function to convert MIME type to user-friendly file extension
+  const getFileExtension = (fileType: string, fileName: string): string => {
+    const fileNameLower = fileName.toLowerCase();
+    
+    // First check if we can get extension from filename
+    const extensionFromName = fileNameLower.split('.').pop();
+    if (extensionFromName && extensionFromName.length <= 5) {
+      return extensionFromName.toUpperCase();
+    }
+    
+    // Convert MIME type to extension
+    const mimeToExt: { [key: string]: string } = {
+      'application/pdf': 'PDF',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+      'application/msword': 'DOC',
+      'application/vnd.ms-excel': 'XLS',
+      'application/vnd.ms-powerpoint': 'PPT',
+      'text/plain': 'TXT',
+      'text/html': 'HTML',
+      'text/css': 'CSS',
+      'text/javascript': 'JS',
+      'application/javascript': 'JS',
+      'application/json': 'JSON',
+      'application/xml': 'XML',
+      'text/xml': 'XML',
+      'text/csv': 'CSV',
+      'image/jpeg': 'JPG',
+      'image/jpg': 'JPG',
+      'image/png': 'PNG',
+      'image/gif': 'GIF',
+      'image/bmp': 'BMP',
+      'image/webp': 'WEBP',
+      'image/svg+xml': 'SVG',
+      'image/tiff': 'TIFF',
+      'video/mp4': 'MP4',
+      'video/avi': 'AVI',
+      'video/quicktime': 'MOV',
+      'video/x-msvideo': 'AVI',
+      'video/webm': 'WEBM',
+      'audio/mpeg': 'MP3',
+      'audio/wav': 'WAV',
+      'audio/ogg': 'OGG',
+      'audio/aac': 'AAC',
+      'audio/flac': 'FLAC',
+      'application/zip': 'ZIP',
+      'application/x-rar-compressed': 'RAR',
+      'application/x-7z-compressed': '7Z',
+      'application/x-tar': 'TAR',
+      'application/gzip': 'GZ',
+      'application/x-bzip2': 'BZ2'
+    };
+    
+    return mimeToExt[fileType.toLowerCase()] || 'FILE';
+  };
 
   useEffect(() => {
     fetchDocuments();
@@ -70,6 +136,9 @@ const Documents = () => {
         
         setDocuments(formattedDocuments);
         setFilteredDocuments(formattedDocuments);
+        
+        // Also fetch document uploaders for user view
+        await fetchDocumentUploaders();
       }
     } catch (error: any) {
       console.error("Error fetching documents:", error);
@@ -80,6 +149,164 @@ const Documents = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDocumentUploaders = async () => {
+    try {
+      setLoadingUploaders(true);
+      const { data, error } = await supabase
+        .from("documents")
+        .select(`
+          created_at,
+          submitted_by,
+          profiles!submitted_by (
+            name,
+            email
+          )
+        `)
+        .order("created_at", { ascending: false });
+        
+      if (error) throw error;
+      
+      // Get unique users who uploaded documents
+      const uniqueUsers = new Map();
+      data?.forEach(doc => {
+        if (doc.submitted_by && doc.profiles) {
+          uniqueUsers.set(doc.submitted_by, {
+            name: doc.profiles.name || "Unknown",
+            email: doc.profiles.email || "Unknown",
+            uploaded_at: doc.created_at,
+            user_id: doc.submitted_by
+          });
+        }
+      });
+      
+      const uploaders = Array.from(uniqueUsers.values());
+      
+      // Sort uploaders alphabetically by name
+      uploaders.sort((a, b) => a.name.localeCompare(b.name));
+      
+      setDocumentUploaders(uploaders);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching document uploaders",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingUploaders(false);
+    }
+  };
+
+  const fetchUserFiles = async (userId: string) => {
+    try {
+      setLoadingUserFiles(true);
+      const { data, error } = await supabase
+        .from("documents")
+        .select("title, status, created_at, file_type, file_path")
+        .eq("submitted_by", userId)
+        .order("created_at", { ascending: false });
+        
+      if (error) throw error;
+      
+      setUserFiles(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching user files",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingUserFiles(false);
+    }
+  };
+
+  const handleUserClick = async (user: {name: string, email: string, user_id: string}) => {
+    setSelectedUser(user);
+    await fetchUserFiles(user.user_id);
+    setShowUserView(false);
+  };
+
+  const handleDocumentView = async (filePath: string, fileName: string, fileType: string) => {
+    try {
+      // Get a signed URL for the file that expires in 1 hour
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(filePath, 3600);
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (!data?.signedUrl) {
+        throw new Error('Could not get signed URL for file');
+      }
+      
+      // Set the selected file and open the viewer
+      setSelectedDocument({ 
+        id: '', 
+        title: fileName, 
+        file_path: filePath, 
+        file_type: fileType,
+        status: 'PENDING',
+        created_at: '',
+        updated_at: '',
+        submitted_by: '',
+        reviewed_by: null,
+        department_id: '',
+        category_id: '',
+        profiles: null,
+        reviewer: null,
+        department: null,
+        document_categories: null
+      });
+      setShowDocumentViewer(true);
+      
+    } catch (error: any) {
+      toast({
+        title: "Error viewing file",
+        description: error.message || "Failed to open the file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDocumentDownload = async (filePath: string, fileName: string) => {
+    try {
+      // Get a signed URL for the file that expires in 1 hour
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(filePath, 3600);
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (!data?.signedUrl) {
+        throw new Error('Could not get signed URL for file');
+      }
+      
+      // Create a temporary link element and click it to download
+      const link = document.createElement('a');
+      link.href = data.signedUrl;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Download started",
+        description: `Downloading ${fileName}`,
+      });
+      
+    } catch (error: any) {
+      toast({
+        title: "Error downloading file",
+        description: error.message || "Failed to download the file",
+        variant: "destructive",
+      });
     }
   };
 
@@ -245,95 +472,128 @@ const Documents = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row justify-between mb-4 space-y-2 sm:space-y-0">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search documents..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={handleSearch}
-              />
-            </div>
-            <div className="flex space-x-2">
-              {isAdmin && (
-                <Button
-                  variant={isPendingOnly ? "default" : "outline"}
-                  size="sm"
-                  onClick={togglePendingFilter}
-                  className="gap-1"
-                >
-                  <span>Pending Documents</span>
-                </Button>
-              )}
-              <FilterDropdown onFilterChange={handleFilterChange} />
-            </div>
-          </div>
+          {showUserView ? (
+            // User List View
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Document Uploaders</h3>
+                <p className="text-sm text-muted-foreground">
+                  {documentUploaders.length} user{documentUploaders.length !== 1 ? 's' : ''} found
+                </p>
+              </div>
 
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <p>Loading documents...</p>
-            </div>
-          ) : filteredDocuments.length > 0 ? (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Uploader</TableHead>
-                    <TableHead>Date Submitted</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[120px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDocuments.map((document) => (
-                    <TableRow key={document.id}>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {document.title}
-                        </div>
-                      </TableCell>
-                      <TableCell>{document.profiles?.name || "Unknown"}</TableCell>
-                      <TableCell>
-                        {new Date(document.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={document.status} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openDocumentViewer(document)}
-                          >
-                            View
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            asChild
-                          >
-                            <Link to={`/documents/${document.id}`}>Details</Link>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+              {loadingUploaders ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <p>Loading users...</p>
+                  </div>
+                </div>
+              ) : documentUploaders.length > 0 ? (
+                <div className="space-y-2">
+                  {documentUploaders.map((uploader, index) => (
+                    <div 
+                      key={index} 
+                      className="flex items-center justify-between p-3 border rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => handleUserClick(uploader)}
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium">{uploader.name}</p>
+                        <p className="text-sm text-muted-foreground">{uploader.email}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(uploader.uploaded_at), "MMM dd, yyyy 'at' h:mm a")}
+                        </p>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No users have uploaded documents yet.</p>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-8">
-              <FileText className="h-10 w-10 text-muted-foreground mb-2" />
-              <p className="text-lg font-medium">No documents found</p>
-              <p className="text-muted-foreground">
-                {searchQuery || isPendingOnly
-                  ? "Try adjusting your search or filters"
-                  : "Upload your first document to get started"}
-              </p>
+            // User Documents View
+            <div>
+              <div className="flex items-center gap-4 mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowUserView(true)}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Users
+                </Button>
+                <div>
+                  <h3 className="text-lg font-semibold">{selectedUser?.name}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedUser?.email}</p>
+                </div>
+              </div>
+
+              {loadingUserFiles ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <p>Loading documents...</p>
+                  </div>
+                </div>
+              ) : userFiles.length > 0 ? (
+                <div className="space-y-2">
+                  {userFiles.map((file, fileIndex) => (
+                    <div key={fileIndex} className="p-3 border rounded-lg bg-muted/30">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="font-medium">{file.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {getFileExtension(file.file_type, file.title)} • {format(new Date(file.created_at), "MMM dd, yyyy 'at' h:mm a")}
+                          </p>
+                        </div>
+                        <div className="ml-4 flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            file.status === 'APPROVED' 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                              : file.status === 'REJECTED'
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                          }`}>
+                            {file.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDocumentView(file.file_path, file.title, file.file_type)}
+                          className="flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDocumentDownload(file.file_path, file.title)}
+                          className="flex items-center gap-1"
+                        >
+                          <Download className="h-3 w-3" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No documents uploaded by this user.</p>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
