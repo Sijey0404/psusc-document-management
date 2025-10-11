@@ -422,21 +422,28 @@ const Folders = () => {
 
   const handleDocumentView = async (filePath: string, fileName: string) => {
     try {
-      // Get the file from Supabase storage
-      const { data, error } = await supabase.storage
+      // Get the public URL for the file instead of downloading
+      const { data: publicUrl } = supabase.storage
         .from('documents')
-        .download(filePath);
+        .getPublicUrl(filePath);
       
-      if (error) throw error;
+      if (!publicUrl) {
+        throw new Error('Could not get public URL for file');
+      }
       
-      // Create a blob URL and open in new tab
-      const url = window.URL.createObjectURL(data);
-      window.open(url, '_blank');
+      // Open the file in a new tab using the public URL
+      const newWindow = window.open(publicUrl.publicUrl, '_blank', 'noopener,noreferrer');
       
-      // Clean up the URL after a delay
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-      }, 1000);
+      // If popup was blocked, show error message
+      if (!newWindow) {
+        toast({
+          title: "Popup blocked",
+          description: "Please allow popups for this site to view files",
+          variant: "destructive",
+        });
+        return;
+      }
+      
     } catch (error: any) {
       toast({
         title: "Error viewing file",
