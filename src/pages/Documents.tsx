@@ -54,6 +54,10 @@ const Documents = () => {
   const [userFiles, setUserFiles] = useState<Array<{id: string, title: string, status: string, created_at: string, file_type: string, file_path: string, feedback: string | null}>>([]);
   const [loadingUserFiles, setLoadingUserFiles] = useState(false);
   
+  // Filter states
+  const [semesterFilter, setSemesterFilter] = useState<string>("");
+  const [schoolYearFilter, setSchoolYearFilter] = useState<string>("");
+  
   // Rejection dialog state
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -220,13 +224,36 @@ const Documents = () => {
       setLoadingUserFiles(true);
       const { data, error } = await supabase
         .from("documents")
-        .select("id, title, status, created_at, file_type, file_path, feedback")
+        .select(`
+          id, title, status, created_at, file_type, file_path, feedback,
+          document_categories!documents_category_id_fkey (
+            semester, deadline
+          )
+        `)
         .eq("submitted_by", userId)
         .order("created_at", { ascending: false });
         
       if (error) throw error;
       
-      setUserFiles(data || []);
+      let filteredData = data || [];
+      
+      // Apply semester filter
+      if (semesterFilter && semesterFilter !== "all") {
+        filteredData = filteredData.filter(doc => 
+          doc.document_categories?.semester === semesterFilter
+        );
+      }
+      
+      // Apply school year filter
+      if (schoolYearFilter.trim() !== "") {
+        filteredData = filteredData.filter(doc => {
+          if (!doc.document_categories?.deadline) return false;
+          const year = new Date(doc.document_categories.deadline).getFullYear();
+          return year.toString() === schoolYearFilter.trim();
+        });
+      }
+      
+      setUserFiles(filteredData);
     } catch (error: any) {
       toast({
         title: "Error fetching user files",
@@ -243,6 +270,18 @@ const Documents = () => {
     await fetchUserFiles(user.user_id);
     setShowUserView(false);
   };
+
+  const clearFilters = () => {
+    setSemesterFilter("");
+    setSchoolYearFilter("");
+  };
+
+  // Refresh user files when filters change
+  useEffect(() => {
+    if (selectedUser && !showUserView) {
+      fetchUserFiles(selectedUser.user_id);
+    }
+  }, [semesterFilter, schoolYearFilter]);
 
   const handleDocumentView = async (filePath: string, fileName: string, fileType: string) => {
     try {
@@ -598,6 +637,44 @@ const Documents = () => {
                 </p>
               </div>
 
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="semesterFilter" className="text-sm whitespace-nowrap">Semester</Label>
+                  <select
+                    id="semesterFilter"
+                    value={semesterFilter}
+                    onChange={(e) => setSemesterFilter(e.target.value)}
+                    className="px-3 py-1.5 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">All Semesters</option>
+                    <option value="1st Semester">1st Semester</option>
+                    <option value="2nd Semester">2nd Semester</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="schoolYearFilter" className="text-sm whitespace-nowrap">School Year</Label>
+                  <Input
+                    id="schoolYearFilter"
+                    type="number"
+                    placeholder="e.g., 2025"
+                    value={schoolYearFilter}
+                    onChange={(e) => setSchoolYearFilter(e.target.value)}
+                    className="w-32"
+                  />
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="whitespace-nowrap"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+
               {loadingUploaders ? (
                 <div className="flex justify-center py-8">
                   <div className="flex items-center gap-2">
@@ -650,6 +727,61 @@ const Documents = () => {
                   <p className="text-sm text-muted-foreground">{selectedUser?.email}</p>
                 </div>
               </div>
+
+              {/* Filters for User Documents */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="semesterFilterDoc" className="text-sm whitespace-nowrap">Semester</Label>
+                  <select
+                    id="semesterFilterDoc"
+                    value={semesterFilter}
+                    onChange={(e) => setSemesterFilter(e.target.value)}
+                    className="px-3 py-1.5 text-sm border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">All Semesters</option>
+                    <option value="1st Semester">1st Semester</option>
+                    <option value="2nd Semester">2nd Semester</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="schoolYearFilterDoc" className="text-sm whitespace-nowrap">School Year</Label>
+                  <Input
+                    id="schoolYearFilterDoc"
+                    type="number"
+                    placeholder="e.g., 2025"
+                    value={schoolYearFilter}
+                    onChange={(e) => setSchoolYearFilter(e.target.value)}
+                    className="w-32"
+                  />
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="whitespace-nowrap"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+
+              {/* Active Filters Display */}
+              {(semesterFilter || schoolYearFilter) && (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  <span className="text-sm text-muted-foreground">Active filters:</span>
+                  {semesterFilter && (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                      Semester: {semesterFilter}
+                    </span>
+                  )}
+                  {schoolYearFilter && (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                      Year: {schoolYearFilter}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {loadingUserFiles ? (
                 <div className="flex justify-center py-8">
@@ -730,7 +862,7 @@ const Documents = () => {
                             </>
                           )}
                           
-                          {file.status === 'REJECTED' && !isAdmin && file.feedback && (
+                          {file.status === 'REJECTED' && file.feedback && (
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
                               <X className="h-3 w-3 text-red-500 flex-shrink-0" />
                               <div className="text-left">
