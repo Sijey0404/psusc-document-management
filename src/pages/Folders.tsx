@@ -31,7 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye } from "lucide-react";
+import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye, FileText, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { 
   DropdownMenu,
@@ -254,6 +254,9 @@ const Folders = () => {
     late: 0,
     rate: 0,
   });
+  const [documentUploaders, setDocumentUploaders] = useState<Array<{name: string, email: string, uploaded_at: string}>>([]);
+  const [showUploadersDialog, setShowUploadersDialog] = useState(false);
+  const [loadingUploaders, setLoadingUploaders] = useState(false);
 
   const handleView = async (folder: Folder) => {
     setViewedFolder(folder);
@@ -308,6 +311,42 @@ const Folders = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const fetchDocumentUploaders = async (folderId: string) => {
+    try {
+      setLoadingUploaders(true);
+      const { data, error } = await supabase
+        .from("documents")
+        .select(`
+          created_at,
+          profiles!submitted_by (
+            name,
+            email
+          )
+        `)
+        .eq("category_id", folderId)
+        .order("created_at", { ascending: false });
+        
+      if (error) throw error;
+      
+      const uploaders = data?.map(doc => ({
+        name: doc.profiles?.name || "Unknown",
+        email: doc.profiles?.email || "Unknown",
+        uploaded_at: doc.created_at
+      })) || [];
+      
+      setDocumentUploaders(uploaders);
+      setShowUploadersDialog(true);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching document uploaders",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingUploaders(false);
     }
   };
 
@@ -587,11 +626,71 @@ const Folders = () => {
                </div>
              </div>
              
-             <DialogFooter>
+             <DialogFooter className="flex gap-2">
+               <Button 
+                 variant="outline" 
+                 onClick={() => viewedFolder && fetchDocumentUploaders(viewedFolder.id)}
+                 disabled={loadingUploaders}
+               >
+                 {loadingUploaders ? (
+                   <>
+                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                     Loading...
+                   </>
+                 ) : (
+                   <>
+                     <FileText className="mr-2 h-4 w-4" />
+                     Documents
+                   </>
+                 )}
+               </Button>
                <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
                  Close
                </Button>
              </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Document Uploaders Dialog */}
+        <Dialog open={showUploadersDialog} onOpenChange={setShowUploadersDialog}>
+          <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Document Uploaders - {viewedFolder?.name}</DialogTitle>
+              <DialogDescription>
+                List of users who have uploaded documents to this folder
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              {documentUploaders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No documents have been uploaded to this folder yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {documentUploaders.map((uploader, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                      <div className="flex-1">
+                        <p className="font-medium">{uploader.name}</p>
+                        <p className="text-sm text-muted-foreground">{uploader.email}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(uploader.uploaded_at), "MMM dd, yyyy 'at' h:mm a")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowUploadersDialog(false)}>
+                Close
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
         
