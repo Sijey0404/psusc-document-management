@@ -254,9 +254,12 @@ const Folders = () => {
     late: 0,
     rate: 0,
   });
-  const [documentUploaders, setDocumentUploaders] = useState<Array<{name: string, email: string, uploaded_at: string}>>([]);
+  const [documentUploaders, setDocumentUploaders] = useState<Array<{name: string, email: string, uploaded_at: string, user_id: string}>>([]);
   const [showUploadersDialog, setShowUploadersDialog] = useState(false);
   const [loadingUploaders, setLoadingUploaders] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<{name: string, email: string, user_id: string} | null>(null);
+  const [userFiles, setUserFiles] = useState<Array<{title: string, status: string, created_at: string, file_type: string}>>([]);
+  const [loadingUserFiles, setLoadingUserFiles] = useState(false);
 
   const handleView = async (folder: Folder) => {
     setViewedFolder(folder);
@@ -321,6 +324,7 @@ const Folders = () => {
         .from("documents")
         .select(`
           created_at,
+          submitted_by,
           profiles!submitted_by (
             name,
             email
@@ -331,12 +335,20 @@ const Folders = () => {
         
       if (error) throw error;
       
-      const uploaders = data?.map(doc => ({
-        name: doc.profiles?.name || "Unknown",
-        email: doc.profiles?.email || "Unknown",
-        uploaded_at: doc.created_at
-      })) || [];
+      // Get unique users who uploaded documents
+      const uniqueUsers = new Map();
+      data?.forEach(doc => {
+        if (doc.submitted_by && doc.profiles) {
+          uniqueUsers.set(doc.submitted_by, {
+            name: doc.profiles.name || "Unknown",
+            email: doc.profiles.email || "Unknown",
+            uploaded_at: doc.created_at,
+            user_id: doc.submitted_by
+          });
+        }
+      });
       
+      const uploaders = Array.from(uniqueUsers.values());
       setDocumentUploaders(uploaders);
       setShowUploadersDialog(true);
     } catch (error: any) {
@@ -347,6 +359,37 @@ const Folders = () => {
       });
     } finally {
       setLoadingUploaders(false);
+    }
+  };
+
+  const fetchUserFiles = async (userId: string, folderId: string) => {
+    try {
+      setLoadingUserFiles(true);
+      const { data, error } = await supabase
+        .from("documents")
+        .select("title, status, created_at, file_type")
+        .eq("category_id", folderId)
+        .eq("submitted_by", userId)
+        .order("created_at", { ascending: false });
+        
+      if (error) throw error;
+      
+      setUserFiles(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching user files",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingUserFiles(false);
+    }
+  };
+
+  const handleUserClick = async (user: {name: string, email: string, user_id: string}) => {
+    setSelectedUser(user);
+    if (viewedFolder) {
+      await fetchUserFiles(user.user_id, viewedFolder.id);
     }
   };
 
@@ -670,16 +713,73 @@ const Folders = () => {
               ) : (
                 <div className="space-y-2">
                   {documentUploaders.map((uploader, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                      <div className="flex-1">
-                        <p className="font-medium">{uploader.name}</p>
-                        <p className="text-sm text-muted-foreground">{uploader.email}</p>
+                    <div key={index} className="border rounded-lg bg-muted/30">
+                      <div 
+                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleUserClick(uploader)}
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-primary hover:underline">{uploader.name}</p>
+                          <p className="text-sm text-muted-foreground">{uploader.email}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(uploader.uploaded_at), "MMM dd, yyyy 'at' h:mm a")}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(uploader.uploaded_at), "MMM dd, yyyy 'at' h:mm a")}
-                        </p>
-                      </div>
+                      
+                      {/* Expanded user details */}
+                      {selectedUser?.user_id === uploader.user_id && (
+                        <div className="border-t p-4 bg-background/50">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-lg">{uploader.name}'s Files</h4>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setSelectedUser(null)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          
+                          {loadingUserFiles ? (
+                            <div className="flex items-center justify-center py-4">
+                              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                              <span>Loading files...</span>
+                            </div>
+                          ) : userFiles.length === 0 ? (
+                            <div className="text-center py-4 text-muted-foreground">
+                              <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                              <p>No files uploaded by this user in this folder.</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {userFiles.map((file, fileIndex) => (
+                                <div key={fileIndex} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                                  <div className="flex-1">
+                                    <p className="font-medium">{file.title}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {file.file_type} • {format(new Date(file.created_at), "MMM dd, yyyy 'at' h:mm a")}
+                                    </p>
+                                  </div>
+                                  <div className="ml-4">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      file.status === 'APPROVED' 
+                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                        : file.status === 'REJECTED'
+                                        ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                                    }`}>
+                                      {file.status}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
