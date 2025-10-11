@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Archive, UserPlus, Users, ArchiveRestore } from "lucide-react";
+import { Pencil, Archive, UserPlus, Users, ArchiveRestore, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { UserService } from "@/services/userService";
@@ -60,6 +60,7 @@ interface Department {
 
 const UserManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -68,6 +69,7 @@ const UserManagement = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Form states
   const [formData, setFormData] = useState({
@@ -99,7 +101,13 @@ const UserManagement = () => {
         }
       });
       
-      setUsers(filteredUsers);
+      // Sort users alphabetically by name
+      const sortedUsers = filteredUsers.sort((a: any, b: any) => 
+        a.name.localeCompare(b.name)
+      );
+      
+      setUsers(sortedUsers);
+      setFilteredUsers(sortedUsers);
     } catch (error: any) {
       console.error("Error fetching users:", error);
       toast({
@@ -160,6 +168,25 @@ const UserManagement = () => {
       password: "",
     });
   };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
+  // Filter users based on search query
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredUsers(users);
+    } else {
+      const filtered = users.filter(user =>
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (departments.find(d => d.id === user.department_id)?.name || "").toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    }
+  }, [searchQuery, users, departments]);
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -318,6 +345,34 @@ const UserManagement = () => {
           </div>
         </div>
 
+        {/* Search Bar */}
+        <div className="flex items-center justify-between">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search users by name, email, position, or department..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2 ml-4">
+            <p className="text-sm text-muted-foreground">
+              {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} found
+            </p>
+            {searchQuery && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearSearch}
+                className="text-xs"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -337,8 +392,8 @@ const UserManagement = () => {
                     Loading users...
                   </TableCell>
                 </TableRow>
-              ) : users.length > 0 ? (
-                users.map((user) => (
+              ) : filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -378,7 +433,10 @@ const UserManagement = () => {
               ) : (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-4">
-                    No users found
+                    {searchQuery ? 
+                      `No users found matching "${searchQuery}"` : 
+                      "No users found"
+                    }
                   </TableCell>
                 </TableRow>
               )}
