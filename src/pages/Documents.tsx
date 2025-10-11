@@ -49,6 +49,7 @@ const Documents = () => {
   // New state for user-based view
   const [showUserView, setShowUserView] = useState(true);
   const [documentUploaders, setDocumentUploaders] = useState<Array<{name: string, email: string, uploaded_at: string, user_id: string}>>([]);
+  const [filteredUploaders, setFilteredUploaders] = useState<Array<{name: string, email: string, uploaded_at: string, user_id: string}>>([]);
   const [loadingUploaders, setLoadingUploaders] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{name: string, email: string, user_id: string} | null>(null);
   const [userFiles, setUserFiles] = useState<Array<{id: string, title: string, status: string, created_at: string, file_type: string, file_path: string, feedback: string | null}>>([]);
@@ -57,6 +58,7 @@ const Documents = () => {
   // Filter states
   const [semesterFilter, setSemesterFilter] = useState<string>("");
   const [schoolYearFilter, setSchoolYearFilter] = useState<string>("");
+  const [userSearchQuery, setUserSearchQuery] = useState<string>("");
   
   // Rejection dialog state
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -208,6 +210,7 @@ const Documents = () => {
       uploaders.sort((a, b) => a.name.localeCompare(b.name));
       
       setDocumentUploaders(uploaders);
+      setFilteredUploaders(uploaders);
     } catch (error: any) {
       toast({
         title: "Error fetching document uploaders",
@@ -274,7 +277,21 @@ const Documents = () => {
   const clearFilters = () => {
     setSemesterFilter("");
     setSchoolYearFilter("");
+    setUserSearchQuery("");
   };
+
+  // Filter uploaders based on search query
+  useEffect(() => {
+    if (userSearchQuery.trim() === "") {
+      setFilteredUploaders(documentUploaders);
+    } else {
+      const filtered = documentUploaders.filter(uploader =>
+        uploader.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+        uploader.email.toLowerCase().includes(userSearchQuery.toLowerCase())
+      );
+      setFilteredUploaders(filtered);
+    }
+  }, [userSearchQuery, documentUploaders]);
 
   // Refresh user files when filters change
   useEffect(() => {
@@ -631,9 +648,17 @@ const Documents = () => {
             // User List View
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Document Uploaders</h3>
-                <p className="text-sm text-muted-foreground">
-                  {documentUploaders.length} user{documentUploaders.length !== 1 ? 's' : ''} found
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search uploaders by name or email..."
+                    className="pl-8"
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground ml-4">
+                  {filteredUploaders.length} user{filteredUploaders.length !== 1 ? 's' : ''} found
                 </p>
               </div>
 
@@ -682,9 +707,9 @@ const Documents = () => {
                     <p>Loading users...</p>
                   </div>
                 </div>
-              ) : documentUploaders.length > 0 ? (
+              ) : filteredUploaders.length > 0 ? (
                 <div className="space-y-2">
-                  {documentUploaders.map((uploader, index) => (
+                  {filteredUploaders.map((uploader, index) => (
                     <div 
                       key={index} 
                       className="flex items-center justify-between p-3 border rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
@@ -705,7 +730,12 @@ const Documents = () => {
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No users have uploaded documents yet.</p>
+                  <p>
+                    {userSearchQuery ? 
+                      `No users found matching "${userSearchQuery}"` : 
+                      "No users have uploaded documents yet."
+                    }
+                  </p>
                 </div>
               )}
             </div>
