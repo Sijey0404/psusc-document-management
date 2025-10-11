@@ -408,18 +408,16 @@ const Folders = () => {
         throw new Error('Could not get signed URL for file');
       }
       
-      // Open the file in a new tab using the signed URL
-      const newWindow = window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-      
-      // If popup was blocked, show error message
-      if (!newWindow) {
-        toast({
-          title: "Popup blocked",
-          description: "Please allow popups for this site to view files",
-          variant: "destructive",
-        });
-        return;
-      }
+      // Create a temporary link element and click it to open in new tab
+      // This approach is less likely to be blocked by popup blockers
+      const link = document.createElement('a');
+      link.href = data.signedUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       
     } catch (error: any) {
       toast({
