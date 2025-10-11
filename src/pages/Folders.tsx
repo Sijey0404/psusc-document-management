@@ -160,6 +160,23 @@ const Folders = () => {
           
         if (error) throw error;
         
+        // Notify all faculty members about the new folder
+        const { data: facultyMembers, error: facultyError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', false)
+          .eq('archived', false);
+          
+        if (!facultyError && facultyMembers && facultyMembers.length > 0) {
+          const notifications = facultyMembers.map(faculty => ({
+            user_id: faculty.id,
+            message: `New folder "${formData.name}" has been created. ${formData.description ? `Description: ${formData.description}` : ''}${formData.deadline ? ` Deadline: ${new Date(formData.deadline).toLocaleDateString()}` : ''}`,
+            related_document_id: null
+          }));
+          
+          await supabase.from('notifications').insert(notifications);
+        }
+        
         toast({
           title: "Folder created",
           description: `${formData.name} has been created successfully and faculty members have been notified.`,
