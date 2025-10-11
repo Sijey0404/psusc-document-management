@@ -378,7 +378,7 @@ const Documents = () => {
         .update({ 
           status: 'REJECTED',
           reviewed_by: user.id,
-          rejection_reason: rejectionReason.trim(),
+          feedback: rejectionReason.trim(),
           updated_at: new Date().toISOString()
         })
         .eq('id', documentId);
@@ -682,50 +682,52 @@ const Documents = () => {
                         </div>
                       </div>
                       
-                      {file.status === 'PENDING' && isAdmin && (
-                        <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleApproveDocument(file.id, file.title)}
-                            disabled={isProcessing}
-                            className="flex items-center gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => handleDocumentView(file.file_path, file.title, file.file_type)}
+                            className="flex items-center gap-1"
                           >
-                            <Check className="h-3 w-3" />
-                            Approve
+                            <ExternalLink className="h-3 w-3" />
+                            View
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openRejectDialog(file.id, file.title)}
-                            disabled={isProcessing}
-                            className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDocumentDownload(file.file_path, file.title)}
+                            className="flex items-center gap-1"
                           >
-                            <X className="h-3 w-3" />
-                            Reject
+                            <Download className="h-3 w-3" />
+                            Download
                           </Button>
                         </div>
-                      )}
-                      
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDocumentView(file.file_path, file.title, file.file_type)}
-                          className="flex items-center gap-1"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          View
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDocumentDownload(file.file_path, file.title)}
-                          className="flex items-center gap-1"
-                        >
-                          <Download className="h-3 w-3" />
-                          Download
-                        </Button>
+                        
+                        {file.status === 'PENDING' && isAdmin && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleApproveDocument(file.id, file.title)}
+                              disabled={isProcessing}
+                              className="flex items-center gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              <Check className="h-3 w-3" />
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openRejectDialog(file.id, file.title)}
+                              disabled={isProcessing}
+                              className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-3 w-3" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
