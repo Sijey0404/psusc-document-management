@@ -78,7 +78,7 @@ const UserManagement = () => {
     role: false,
     position: "INSTRUCTOR",
     department_id: "",
-    password: "",
+    password: "psu3du123",
   });
 
   const fetchUsers = async (archived = false) => {
@@ -167,7 +167,7 @@ const UserManagement = () => {
       role: false,
       position: "INSTRUCTOR",
       department_id: "",
-      password: "",
+      password: "psu3du123",
     });
   };
 
@@ -339,7 +339,7 @@ const UserManagement = () => {
               )}
             </Button>
             {!showArchived && (
-              <Button onClick={() => setIsAddDialogOpen(true)} className="flex items-center gap-2">
+              <Button onClick={() => { resetForm(); setIsAddDialogOpen(true); }} className="flex items-center gap-2">
                 <UserPlus className="h-4 w-4" />
                 <span>Add New User</span>
               </Button>
@@ -535,15 +535,18 @@ const UserManagement = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="password">Password (Optional)</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   name="password"
                   type="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  placeholder="Leave empty to use default password"
+                  placeholder="psu3du123"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Default password is "psu3du123". You can change it to a custom password.
+                </p>
               </div>
             </div>
             <DialogFooter>
