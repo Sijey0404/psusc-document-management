@@ -6,10 +6,11 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, Shield, Phone, Moon, Sun, Monitor, Mail, MessageCircle, Lock, Loader2, Eye, EyeOff } from "lucide-react";
+import { Settings as SettingsIcon, Shield, Phone, Moon, Sun, Monitor, Mail, MessageCircle, Lock, Loader2, Eye, EyeOff, KeyRound } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
@@ -36,6 +37,7 @@ const Settings = () => {
   const { isAdmin } = useAuth();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -299,6 +301,27 @@ const Settings = () => {
                     </Button>
                   </form>
                 </Form>
+              </div>
+            </div>
+
+            {/* Forgot Password */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-royal" />
+                <h3 className="text-lg font-semibold text-royal">Forgot Password</h3>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Reset your password if you can't remember it
+              </p>
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => navigate('/forgot-password')}
+                >
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Reset Password
+                </Button>
               </div>
             </div>
 
