@@ -2,12 +2,9 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Settings as SettingsIcon, Shield, Phone, Mail, MessageCircle, Lock, Loader2, Eye, EyeOff, KeyRound, AlertCircle } from "lucide-react";
+import { Settings as SettingsIcon, Lock, Loader2, Eye, EyeOff, KeyRound, AlertCircle, Moon, Sun, Monitor } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -35,17 +32,14 @@ type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 const Settings = () => {
   const { isAdmin, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [mounted, setMounted] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [permissions, setPermissions] = useState({
-    publicDocuments: true,
-    departmentDocuments: false,
-    privateDocuments: true
-  });
   const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -108,12 +102,9 @@ const Settings = () => {
     }
   };
 
-  const handlePermissionChange = (key: keyof typeof permissions) => {
-    setPermissions(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleResetPassword = async () => {
     try {
@@ -153,44 +144,6 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-8">
-            {/* Access Permissions */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-royal" />
-                <h3 className="text-lg font-semibold text-royal">Access Permissions</h3>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Control who sees what documents
-              </p>
-              <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label htmlFor="public-docs" className="text-sm font-medium">Public Documents</Label>
-                    <p className="text-xs text-muted-foreground">Allow everyone to view public documents</p>
-                  </div>
-                  <Switch id="public-docs" checked={permissions.publicDocuments} onCheckedChange={() => handlePermissionChange('publicDocuments')} />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label htmlFor="dept-docs" className="text-sm font-medium">Department Documents</Label>
-                    <p className="text-xs text-muted-foreground">Share documents within your department</p>
-                  </div>
-                  <Switch id="dept-docs" checked={permissions.departmentDocuments} onCheckedChange={() => handlePermissionChange('departmentDocuments')} />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label htmlFor="private-docs" className="text-sm font-medium">Private Documents</Label>
-                    <p className="text-xs text-muted-foreground">Keep your documents private by default</p>
-                  </div>
-                  <Switch id="private-docs" checked={permissions.privateDocuments} onCheckedChange={() => handlePermissionChange('privateDocuments')} />
-                </div>
-              </div>
-            </div>
-
-
-
             {/* Password Change */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
@@ -341,6 +294,36 @@ const Settings = () => {
                   <KeyRound className="mr-2 h-4 w-4" />
                   Reset Password
                 </Button>
+              </div>
+            </div>
+
+            {/* Theme Preferences */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Moon className="h-5 w-5 text-royal" />
+                <h3 className="text-lg font-semibold text-royal">Theme Preferences</h3>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Choose your preferred theme appearance
+              </p>
+              <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+                {mounted && <div className="grid grid-cols-3 gap-3">
+                    <Button variant={theme === 'light' ? 'default' : 'outline'} size="sm" onClick={() => setTheme('light')} className="flex items-center gap-2">
+                      <Sun className="h-4 w-4" />
+                      Light
+                    </Button>
+                    <Button variant={theme === 'dark' ? 'default' : 'outline'} size="sm" onClick={() => setTheme('dark')} className="flex items-center gap-2">
+                      <Moon className="h-4 w-4" />
+                      Dark
+                    </Button>
+                    <Button variant={theme === 'system' ? 'default' : 'outline'} size="sm" onClick={() => setTheme('system')} className="flex items-center gap-2">
+                      <Monitor className="h-4 w-4" />
+                      System
+                    </Button>
+                  </div>}
+                <p className="text-xs text-muted-foreground mt-2">
+                  Current theme: {mounted ? theme : 'Loading...'}
+                </p>
               </div>
             </div>
 
