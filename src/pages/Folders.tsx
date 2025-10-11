@@ -264,6 +264,63 @@ const Folders = () => {
   const [showFileViewer, setShowFileViewer] = useState(false);
   const [fileViewerUrl, setFileViewerUrl] = useState<string>("");
 
+  // Function to convert MIME type to user-friendly file extension
+  const getFileExtension = (fileType: string, fileName: string): string => {
+    const fileNameLower = fileName.toLowerCase();
+    
+    // First check if we can get extension from filename
+    const extensionFromName = fileNameLower.split('.').pop();
+    if (extensionFromName && extensionFromName.length <= 5) {
+      return extensionFromName.toUpperCase();
+    }
+    
+    // Convert MIME type to extension
+    const mimeToExt: { [key: string]: string } = {
+      'application/pdf': 'PDF',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+      'application/msword': 'DOC',
+      'application/vnd.ms-excel': 'XLS',
+      'application/vnd.ms-powerpoint': 'PPT',
+      'text/plain': 'TXT',
+      'text/html': 'HTML',
+      'text/css': 'CSS',
+      'text/javascript': 'JS',
+      'application/javascript': 'JS',
+      'application/json': 'JSON',
+      'application/xml': 'XML',
+      'text/xml': 'XML',
+      'text/csv': 'CSV',
+      'image/jpeg': 'JPG',
+      'image/jpg': 'JPG',
+      'image/png': 'PNG',
+      'image/gif': 'GIF',
+      'image/bmp': 'BMP',
+      'image/webp': 'WEBP',
+      'image/svg+xml': 'SVG',
+      'image/tiff': 'TIFF',
+      'video/mp4': 'MP4',
+      'video/avi': 'AVI',
+      'video/quicktime': 'MOV',
+      'video/x-msvideo': 'AVI',
+      'video/webm': 'WEBM',
+      'audio/mpeg': 'MP3',
+      'audio/wav': 'WAV',
+      'audio/ogg': 'OGG',
+      'audio/aac': 'AAC',
+      'audio/flac': 'FLAC',
+      'application/zip': 'ZIP',
+      'application/x-rar-compressed': 'RAR',
+      'application/x-7z-compressed': '7Z',
+      'application/x-tar': 'TAR',
+      'application/gzip': 'GZ',
+      'application/x-bzip2': 'BZ2'
+    };
+    
+    return mimeToExt[fileType.toLowerCase()] || 'FILE';
+  };
+
   const handleView = async (folder: Folder) => {
     setViewedFolder(folder);
     setViewDialogOpen(true);
@@ -793,7 +850,7 @@ const Folders = () => {
                                     <div className="flex-1">
                                       <p className="font-medium">{file.title}</p>
                                       <p className="text-sm text-muted-foreground">
-                                        {file.file_type} • {format(new Date(file.created_at), "MMM dd, yyyy 'at' h:mm a")}
+                                        {getFileExtension(file.file_type, file.title)} • {format(new Date(file.created_at), "MMM dd, yyyy 'at' h:mm a")}
                                       </p>
                                     </div>
                                     <div className="ml-4 flex items-center gap-2">
@@ -878,7 +935,7 @@ const Folders = () => {
                 {selectedFile?.title}
               </DialogTitle>
               <DialogDescription>
-                Document preview - {selectedFile?.file_type}
+                Document preview - {selectedFile ? getFileExtension(selectedFile.file_type, selectedFile.title) : 'FILE'}
               </DialogDescription>
             </DialogHeader>
 
@@ -1051,7 +1108,7 @@ const Folders = () => {
                           <FileText className="h-16 w-16 text-muted-foreground mb-4" />
                           <h3 className="text-lg font-semibold mb-2">Preview Not Available</h3>
                           <p className="text-muted-foreground text-center mb-4">
-                            This file type ({selectedFile?.file_type}) cannot be previewed in the browser.
+                            This file type ({selectedFile ? getFileExtension(selectedFile.file_type, selectedFile.title) : 'FILE'}) cannot be previewed in the browser.
                           </p>
                           <Button
                             onClick={() => {
