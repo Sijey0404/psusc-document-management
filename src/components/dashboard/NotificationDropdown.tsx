@@ -37,50 +37,19 @@ export const NotificationDropdown = () => {
       
       if (notifError) throw notifError;
       
-      // Also fetch recent document uploads as fallback
-      const { data: docData, error: docError } = await supabase
-        .from('documents')
-        .select(`
-          id,
-          title,
-          created_at,
-          submitted_by,
-          profiles!documents_submitted_by_fkey (name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      // Transform notifications data
+      const notificationsList: Notification[] = (notifData || []).map((notif: any) => ({
+        id: notif.id,
+        user_id: notif.user_id,
+        message: notif.message,
+        created_at: notif.created_at,
+        read: notif.read,
+        type: notif.type || 'GENERAL',
+        reference_id: notif.reference_id || notif.related_document_id || ''
+      }));
       
-      if (docError) throw docError;
-      
-      // Combine both notification sources
-      const notificationsList: Notification[] = [
-        ...(notifData || []).map((notif: any) => ({
-          id: notif.id,
-          user_id: notif.user_id,
-          message: notif.message,
-          created_at: notif.created_at,
-          read: notif.read,
-          type: notif.type || 'GENERAL',
-          reference_id: notif.reference_id || notif.related_document_id || ''
-        })),
-        ...(docData || []).map((doc) => ({
-          id: doc.id,
-          user_id: doc.submitted_by,
-          message: `${doc.profiles?.name || 'Unknown user'} uploaded "${doc.title}"`,
-          created_at: doc.created_at,
-          read: false,
-          type: 'DOCUMENT_UPLOAD',
-          reference_id: doc.id
-        }))
-      ];
-      
-      // Sort by created_at and take the most recent 10
-      const sortedNotifications = notificationsList
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 10);
-      
-      setNotifications(sortedNotifications);
-      setUnreadCount(sortedNotifications.filter(n => !n.read).length);
+      setNotifications(notificationsList);
+      setUnreadCount(notificationsList.filter(n => !n.read).length);
     } catch (error: any) {
       console.error("Error fetching notifications:", error);
       toast({

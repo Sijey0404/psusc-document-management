@@ -171,6 +171,13 @@ const DocumentDetails = () => {
         is_on_time: isOnTime,
         document_status: 'APPROVED'
       });
+
+      // Create notification for the faculty member
+      await supabase.from('notifications').insert({
+        user_id: document.submitted_by,
+        message: `Your document "${document.title}" has been approved.`,
+        related_document_id: document.id
+      });
       
       setDocument(prev => {
         if (!prev) return null;
@@ -256,6 +263,13 @@ const DocumentDetails = () => {
         reviewed_by: profile.id,
         is_on_time: isOnTime,
         document_status: 'REJECTED'
+      });
+
+      // Create notification for the faculty member
+      await supabase.from('notifications').insert({
+        user_id: document.submitted_by,
+        message: `Your document "${document.title}" has been rejected. Reason: ${feedback}`,
+        related_document_id: document.id
       });
       
       setDocument(prev => {

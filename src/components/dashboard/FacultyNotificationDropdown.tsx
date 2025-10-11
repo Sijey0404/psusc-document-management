@@ -28,7 +28,7 @@ export const FacultyNotificationDropdown = () => {
       setIsLoading(true);
       console.log("Fetching notifications for user:", user.id);
       
-      // Fetch user notifications
+      // Fetch user notifications from the notifications table
       const { data: notificationsData, error: notificationsError } = await supabase
         .from('notifications')
         .select('*')
@@ -43,74 +43,25 @@ export const FacultyNotificationDropdown = () => {
       
       console.log("Fetched notifications:", notificationsData?.length);
       
-      if (notificationsData && notificationsData.length > 0) {
-        // Transform the data to ensure all required properties are present
-        const formattedNotifications: Notification[] = notificationsData.map(notification => ({
-          id: notification.id,
-          user_id: notification.user_id,
-          message: notification.message,
-          created_at: notification.created_at,
-          read: notification.read,
-          related_document_id: notification.related_document_id,
-          // Add required fields that don't exist in the database schema
-          type: determineNotificationType(notification.message),
-          reference_id: notification.related_document_id || notification.id.toString()
-        }));
-        
-        setNotifications(formattedNotifications);
-        
-        // Count unread notifications
-        const unread = formattedNotifications.filter(notification => !notification.read).length;
-        setUnreadCount(unread);
-        console.log("Unread notifications:", unread);
-      } else {
-        // Fallback to the old document status-based notifications
-        const { data: userDocuments, error: docsError } = await supabase
-          .from('documents')
-          .select('id, title, status, feedback, updated_at')
-          .eq('submitted_by', user.id)
-          .order('updated_at', { ascending: false })
-          .limit(10);
-        
-        if (docsError) throw docsError;
-        
-        if (userDocuments && userDocuments.length > 0) {
-          // Transform document data to notifications
-          const notificationData: Notification[] = userDocuments.map((doc) => {
-            let message = "";
-            let type = "DOCUMENT_UPDATE";
-            
-            if (doc.status === "APPROVED") {
-              message = `Your document "${doc.title}" has been approved.`;
-              type = "DOCUMENT_APPROVED";
-            } else if (doc.status === "REJECTED") {
-              message = `Your document "${doc.title}" has been rejected.${doc.feedback ? ` Reason: ${doc.feedback}` : ''}`;
-              type = "DOCUMENT_REJECTED";
-            } else {
-              message = `Your document "${doc.title}" status is now ${doc.status}.`;
-            }
-            
-            return {
-              id: `${doc.id}-${doc.updated_at}`,
-              user_id: user.id,
-              message,
-              created_at: doc.updated_at,
-              read: false, // Assume all notifications are unread initially
-              type,
-              reference_id: doc.id,
-              related_document_id: doc.id
-            };
-          });
-          
-          setNotifications(notificationData);
-          setUnreadCount(notificationData.length);
-          console.log("Generated notification data from documents:", notificationData.length);
-        } else {
-          setNotifications([]);
-          setUnreadCount(0);
-          console.log("No notifications or documents found");
-        }
-      }
+      // Transform the data to ensure all required properties are present
+      const formattedNotifications: Notification[] = (notificationsData || []).map(notification => ({
+        id: notification.id,
+        user_id: notification.user_id,
+        message: notification.message,
+        created_at: notification.created_at,
+        read: notification.read,
+        related_document_id: notification.related_document_id,
+        // Add required fields that don't exist in the database schema
+        type: determineNotificationType(notification.message),
+        reference_id: notification.related_document_id || notification.id.toString()
+      }));
+      
+      setNotifications(formattedNotifications);
+      
+      // Count unread notifications
+      const unread = formattedNotifications.filter(notification => !notification.read).length;
+      setUnreadCount(unread);
+      console.log("Unread notifications:", unread);
     } catch (error: any) {
       console.error("Error fetching faculty notifications:", error);
       toast({
@@ -182,19 +133,18 @@ export const FacultyNotificationDropdown = () => {
     if (!user || notifications.length === 0) return;
     
     try {
-      // Check if we're using the notifications table
-      const hasNotificationTable = notifications[0].hasOwnProperty('read');
+      console.log("Marking all notifications as read");
       
-      if (hasNotificationTable) {
-        console.log("Marking all notifications as read");
-        // Update all unread notifications for this user
-        const { error } = await supabase
-          .from('notifications')
-          .update({ read: true })
-          .eq('user_id', user.id)
-          .eq('read', false);
-          
-        if (error) throw error;
+      // Update all unread notifications for this user in the database
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+        
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
       }
       
       // Update UI state
@@ -202,8 +152,18 @@ export const FacultyNotificationDropdown = () => {
       setNotifications(prev => 
         prev.map(notification => ({ ...notification, read: true }))
       );
+      
+      toast({
+        title: "Success",
+        description: "All notifications marked as read",
+      });
     } catch (error: any) {
       console.error("Error marking notifications as read:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark notifications as read",
+        variant: "destructive",
+      });
     }
   };
 

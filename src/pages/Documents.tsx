@@ -398,6 +398,22 @@ const Documents = () => {
         .eq('id', documentId);
       
       if (error) throw error;
+
+      // Get the document to find the submitted_by user
+      const { data: docData } = await supabase
+        .from('documents')
+        .select('submitted_by, title')
+        .eq('id', documentId)
+        .single();
+
+      if (docData) {
+        // Create notification for the faculty member
+        await supabase.from('notifications').insert({
+          user_id: docData.submitted_by,
+          message: `Your document "${docData.title}" has been approved.`,
+          related_document_id: documentId
+        });
+      }
       
       toast({
         title: "Document approved",
@@ -440,6 +456,22 @@ const Documents = () => {
         .eq('id', documentId);
       
       if (error) throw error;
+
+      // Get the document to find the submitted_by user
+      const { data: docData } = await supabase
+        .from('documents')
+        .select('submitted_by, title')
+        .eq('id', documentId)
+        .single();
+
+      if (docData) {
+        // Create notification for the faculty member
+        await supabase.from('notifications').insert({
+          user_id: docData.submitted_by,
+          message: `Your document "${docData.title}" has been rejected. Reason: ${rejectionReason.trim()}`,
+          related_document_id: documentId
+        });
+      }
       
       toast({
         title: "Document rejected",
