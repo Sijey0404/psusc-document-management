@@ -422,17 +422,21 @@ const Folders = () => {
 
   const handleDocumentView = async (filePath: string, fileName: string) => {
     try {
-      // Get the public URL for the file instead of downloading
-      const { data: publicUrl } = supabase.storage
+      // Get a signed URL for the file that expires in 1 hour
+      const { data, error } = await supabase.storage
         .from('documents')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 3600);
       
-      if (!publicUrl) {
-        throw new Error('Could not get public URL for file');
+      if (error) {
+        throw error;
       }
       
-      // Open the file in a new tab using the public URL
-      const newWindow = window.open(publicUrl.publicUrl, '_blank', 'noopener,noreferrer');
+      if (!data?.signedUrl) {
+        throw new Error('Could not get signed URL for file');
+      }
+      
+      // Open the file in a new tab using the signed URL
+      const newWindow = window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
       
       // If popup was blocked, show error message
       if (!newWindow) {
