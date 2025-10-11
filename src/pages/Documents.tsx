@@ -11,8 +11,18 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { FileText, Plus, Search, CheckCircle, ExternalLink, Download, Loader2, ArrowLeft } from "lucide-react";
+import { FileText, Plus, Search, CheckCircle, ExternalLink, Download, Loader2, ArrowLeft, Check, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { StatusBadge } from "@/components/document/StatusBadge";
 import { FilterDropdown } from "@/components/document/FilterDropdown";
@@ -41,8 +51,14 @@ const Documents = () => {
   const [documentUploaders, setDocumentUploaders] = useState<Array<{name: string, email: string, uploaded_at: string, user_id: string}>>([]);
   const [loadingUploaders, setLoadingUploaders] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{name: string, email: string, user_id: string} | null>(null);
-  const [userFiles, setUserFiles] = useState<Array<{title: string, status: string, created_at: string, file_type: string, file_path: string}>>([]);
+  const [userFiles, setUserFiles] = useState<Array<{id: string, title: string, status: string, created_at: string, file_type: string, file_path: string}>>([]);
   const [loadingUserFiles, setLoadingUserFiles] = useState(false);
+  
+  // Rejection dialog state
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [documentToReject, setDocumentToReject] = useState<{id: string, title: string} | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Function to convert MIME type to user-friendly file extension
   const getFileExtension = (fileType: string, fileName: string): string => {
@@ -204,7 +220,7 @@ const Documents = () => {
       setLoadingUserFiles(true);
       const { data, error } = await supabase
         .from("documents")
-        .select("title, status, created_at, file_type, file_path")
+        .select("id, title, status, created_at, file_type, file_path")
         .eq("submitted_by", userId)
         .order("created_at", { ascending: false });
         
@@ -308,6 +324,106 @@ const Documents = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleApproveDocument = async (documentId: string, documentTitle: string) => {
+    if (!user) return;
+    
+    try {
+      setIsProcessing(true);
+      
+      const { error } = await supabase
+        .from('documents')
+        .update({ 
+          status: 'APPROVED',
+          reviewed_by: user.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', documentId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Document approved",
+        description: `${documentTitle} has been approved successfully.`,
+        variant: "default",
+      });
+      
+      // Refresh the data
+      await fetchDocuments();
+      if (selectedUser) {
+        await fetchUserFiles(selectedUser.user_id);
+      }
+      
+    } catch (error: any) {
+      console.error("Error approving document:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve document",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRejectDocument = async (documentId: string, documentTitle: string) => {
+    if (!user) return;
+    
+    try {
+      setIsProcessing(true);
+      
+      const { error } = await supabase
+        .from('documents')
+        .update({ 
+          status: 'REJECTED',
+          reviewed_by: user.id,
+          rejection_reason: rejectionReason.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', documentId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Document rejected",
+        description: `${documentTitle} has been rejected.`,
+        variant: "default",
+      });
+      
+      // Close dialog and reset state
+      setShowRejectDialog(false);
+      setRejectionReason("");
+      setDocumentToReject(null);
+      
+      // Refresh the data
+      await fetchDocuments();
+      if (selectedUser) {
+        await fetchUserFiles(selectedUser.user_id);
+      }
+      
+    } catch (error: any) {
+      console.error("Error rejecting document:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject document",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const openRejectDialog = (documentId: string, documentTitle: string) => {
+    setDocumentToReject({ id: documentId, title: documentTitle });
+    setRejectionReason("");
+    setShowRejectDialog(true);
+  };
+
+  const closeRejectDialog = () => {
+    setShowRejectDialog(false);
+    setRejectionReason("");
+    setDocumentToReject(null);
   };
 
   useEffect(() => {
@@ -584,6 +700,30 @@ const Documents = () => {
                           <Download className="h-3 w-3" />
                           Download
                         </Button>
+                        {file.status === 'PENDING' && isAdmin && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleApproveDocument(file.id, file.title)}
+                              disabled={isProcessing}
+                              className="flex items-center gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              <Check className="h-3 w-3" />
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openRejectDialog(file.id, file.title)}
+                              disabled={isProcessing}
+                              className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-3 w-3" />
+                              Reject
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -608,6 +748,59 @@ const Documents = () => {
           fileName={selectedDocument.title}
         />
       )}
+
+      {/* Rejection Reason Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <X className="h-5 w-5 text-red-500" />
+              Reject Document
+            </DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting "{documentToReject?.title}".
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason">Rejection Reason</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="Enter the reason for rejection..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="min-h-[100px]"
+                required
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={closeRejectDialog}
+              disabled={isProcessing}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => documentToReject && handleRejectDocument(documentToReject.id, documentToReject.title)}
+              disabled={isProcessing || !rejectionReason.trim()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Rejecting...
+                </>
+              ) : (
+                "Reject Document"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
