@@ -336,15 +336,16 @@ const Folders = () => {
         .eq("role", false)
         .eq("archived", false);
       
-      // Fetch all submissions for this folder
+      // Fetch submissions for this folder (including status for filtering)
       const { data: submissions, error } = await supabase
         .from("documents")
-        .select("created_at")
+        .select("created_at, status")
         .eq("category_id", folder.id);
         
       if (error) throw error;
       
-      const totalSubmissions = submissions?.length || 0;
+      // Only count approved documents for Total Submissions
+      const totalSubmissions = submissions?.filter((doc: any) => doc.status === 'APPROVED').length || 0;
       let ontime = 0;
       let late = 0;
       
