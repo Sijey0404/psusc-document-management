@@ -266,6 +266,9 @@ const Folders = () => {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [selectedFileForFeedback, setSelectedFileForFeedback] = useState<{title: string, file_path: string, file_type: string} | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
+  const [showInstructors, setShowInstructors] = useState(false);
+  const [loadingInstructors, setLoadingInstructors] = useState(false);
+  const [instructors, setInstructors] = useState<Array<{ id: string; name: string; email: string; submitted: boolean }>>([]);
 
   // Function to convert MIME type to user-friendly file extension
   const getFileExtension = (fileType: string, fileName: string): string => {
@@ -327,6 +330,9 @@ const Folders = () => {
   const handleView = async (folder: Folder) => {
     setViewedFolder(folder);
     setViewDialogOpen(true);
+    setShowInstructors(false);
+    setInstructors([]);
+    setLoadingInstructors(false);
     
     try {
       // Fetch total instructors (faculty members) - only active accounts
@@ -378,6 +384,45 @@ const Folders = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const fetchInstructorsForFolder = async (folderId: string) => {
+    try {
+      setLoadingInstructors(true);
+      // Fetch all active faculty
+      const { data: faculty, error: facultyError } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .eq("role", false)
+        .eq("archived", false);
+      if (facultyError) throw facultyError;
+
+      // Fetch submissions for this folder to see who submitted
+      const { data: docs, error: docsError } = await supabase
+        .from("documents")
+        .select("submitted_by")
+        .eq("category_id", folderId);
+      if (docsError) throw docsError;
+
+      const submittedSet = new Set((docs || []).map((d: any) => d.submitted_by).filter(Boolean));
+      const list = (faculty || []).map((f: any) => ({
+        id: f.id,
+        name: f.name || "Unknown",
+        email: f.email || "",
+        submitted: submittedSet.has(f.id),
+      }));
+      list.sort((a, b) => a.name.localeCompare(b.name));
+      setInstructors(list);
+      setShowInstructors(true);
+    } catch (error: any) {
+      toast({
+        title: "Error loading instructors",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingInstructors(false);
     }
   };
 
@@ -807,9 +852,13 @@ const Folders = () => {
             <div className="space-y-6 py-4">
               {/* Statistics Grid */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="border rounded-lg p-4 bg-muted/50">
+                <div 
+                  className="border rounded-lg p-4 bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => viewedFolder && (showInstructors ? setShowInstructors(false) : fetchInstructorsForFolder(viewedFolder.id))}
+                >
                   <Label className="text-xs text-muted-foreground">Total Instructors</Label>
                   <p className="text-2xl font-bold mt-1">{folderStats.totalInstructors}</p>
+                  <p className="text-xs text-primary mt-2">{showInstructors ? 'Hide list' : 'Click to view list'}</p>
                 </div>
                 
                 <div className="border rounded-lg p-4 bg-muted/50">
@@ -838,6 +887,38 @@ const Folders = () => {
                   </p>
                 </div>
                </div>
+
+               {showInstructors && (
+                 <div className="mt-4 border rounded-lg p-4 bg-muted/30">
+                   <div className="flex items-center justify-between mb-3">
+                     <h4 className="font-semibold text-sm">Instructors</h4>
+                     {loadingInstructors && (
+                       <span className="text-xs text-muted-foreground">Loading...</span>
+                     )}
+                   </div>
+                   {instructors.length === 0 && !loadingInstructors ? (
+                     <p className="text-sm text-muted-foreground">No instructors found.</p>
+                   ) : (
+                     <div className="space-y-2 max-h-64 overflow-auto pr-1">
+                       {instructors.map((inst) => (
+                         <div key={inst.id} className="flex items-center justify-between py-1 border-b last:border-b-0">
+                           <div>
+                             <p className="text-sm font-medium">{inst.name}</p>
+                             <p className="text-xs text-muted-foreground">{inst.email}</p>
+                           </div>
+                           <span className={
+                             `text-xs px-2 py-0.5 rounded-full font-medium ${inst.submitted 
+                               ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                               : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'}`
+                           }>
+                             {inst.submitted ? 'Submitted' : 'Not submitted'}
+                           </span>
+                         </div>
+                       ))}
+                     </div>
+                   )}
+                 </div>
+               )}
              </div>
              
              <DialogFooter className="flex gap-2">
