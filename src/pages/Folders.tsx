@@ -4,7 +4,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -65,7 +64,6 @@ const Folders = () => {
   const [schoolYearFilter, setSchoolYearFilter] = useState<string>("");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewedFolder, setViewedFolder] = useState<Folder | null>(null);
-  const [folderDocumentCounts, setFolderDocumentCounts] = useState<Record<string, number>>({});
   
   const [formData, setFormData] = useState({
     name: "",
@@ -86,25 +84,6 @@ const Folders = () => {
       
       setFolders(data || []);
       setFilteredFolders(data || []);
-
-      // After fetching folders, fetch document counts for these folders
-      const folderIds = (data || []).map((f) => f.id);
-      if (folderIds.length > 0) {
-        const { data: docs, error: docsError } = await supabase
-          .from("documents")
-          .select("id, category_id")
-          .in("category_id", folderIds);
-        if (!docsError && docs) {
-          const counts: Record<string, number> = {};
-          for (const d of docs as any[]) {
-            const key = d.category_id as string;
-            counts[key] = (counts[key] || 0) + 1;
-          }
-          setFolderDocumentCounts(counts);
-        }
-      } else {
-        setFolderDocumentCounts({});
-      }
     } catch (error: any) {
       toast({
         title: "Error fetching folders",
@@ -690,16 +669,7 @@ const Folders = () => {
               ) : (
                 filteredFolders.map((folder) => (
                   <TableRow key={folder.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex flex-col">
-                        <div className="mb-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {(folderDocumentCounts[folder.id] || 0)} file{(folderDocumentCounts[folder.id] || 0) === 1 ? '' : 's'}
-                          </Badge>
-                        </div>
-                        <span>{folder.name}</span>
-                      </div>
-                    </TableCell>
+                    <TableCell className="font-medium">{folder.name}</TableCell>
                     <TableCell>{folder.description || "-"}</TableCell>
                     <TableCell>{folder.semester || "-"}</TableCell>
                     <TableCell>
