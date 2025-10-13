@@ -151,41 +151,34 @@ export const DocumentViewer = ({ filePath, fileType, fileName }: DocumentViewerP
         />
       );
     } else if (
-      fileType.includes('word') || 
-      fileType.includes('document') || 
-      fileType.includes('docx') || 
-      fileType.includes('doc')
+      // Office documents: Word, Excel, PowerPoint (legacy and OOXML)
+      fileType.includes('word') ||
+      fileType.includes('officedocument') ||
+      fileType.includes('msword') ||
+      fileType.includes('vnd.ms-excel') ||
+      fileType.includes('vnd.ms-powerpoint') ||
+      fileType.includes('spreadsheetml') ||
+      fileType.includes('presentationml') ||
+      fileType.includes('doc') ||
+      fileType.includes('docx') ||
+      fileType.includes('xls') ||
+      fileType.includes('xlsx') ||
+      fileType.includes('ppt') ||
+      fileType.includes('pptx')
     ) {
+      const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
       return (
         <motion.div 
-          className="flex flex-col items-center justify-center h-96"
+          className="h-[600px] w-full"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <div className="bg-primary/5 rounded-full p-6 mb-4">
-            <FileText className="h-12 w-12 text-primary" />
-          </div>
-          <p className="text-center max-w-md">
-            Microsoft Word documents can be downloaded and viewed in Microsoft Office or Google Docs.
-          </p>
-          <div className="flex gap-4 mt-6">
-            <a 
-              href={`https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-white bg-primary hover:bg-primary/90 px-4 py-2 rounded-md transition-colors"
-            >
-              View in Google Docs
-            </a>
-            <a 
-              href={fileUrl}
-              download={fileName}
-              className="border border-primary text-primary hover:bg-primary/5 px-4 py-2 rounded-md transition-colors"
-            >
-              Download
-            </a>
-          </div>
+          <iframe
+            src={googleViewerUrl}
+            title={fileName}
+            className="w-full h-full border-0 rounded-md shadow-sm"
+          />
         </motion.div>
       );
     } else {
