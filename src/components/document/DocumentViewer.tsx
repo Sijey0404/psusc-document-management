@@ -151,7 +151,7 @@ export const DocumentViewer = ({ filePath, fileType, fileName }: DocumentViewerP
         />
       );
     } else if (
-      // Office documents: Word, Excel, PowerPoint (legacy and OOXML)
+      // Office documents: detect by MIME or file extension
       fileType.includes('word') ||
       fileType.includes('officedocument') ||
       fileType.includes('msword') ||
@@ -159,12 +159,7 @@ export const DocumentViewer = ({ filePath, fileType, fileName }: DocumentViewerP
       fileType.includes('vnd.ms-powerpoint') ||
       fileType.includes('spreadsheetml') ||
       fileType.includes('presentationml') ||
-      fileType.includes('doc') ||
-      fileType.includes('docx') ||
-      fileType.includes('xls') ||
-      fileType.includes('xlsx') ||
-      fileType.includes('ppt') ||
-      fileType.includes('pptx')
+      /\.(doc|docx|xls|xlsx|ppt|pptx)$/i.test(fileName)
     ) {
       const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
       return (
@@ -180,6 +175,18 @@ export const DocumentViewer = ({ filePath, fileType, fileName }: DocumentViewerP
             className="w-full h-full border-0 rounded-md shadow-sm"
           />
         </motion.div>
+      );
+    } else if (fileType.includes('csv') || /\.(csv)$/i.test(fileName)) {
+      // Render CSV inline
+      return (
+        <motion.iframe
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          src={fileUrl}
+          title={fileName}
+          className="w-full h-[600px] border-0 rounded-md shadow-sm bg-white"
+        />
       );
     } else {
       // Default fallback for unsupported file types
