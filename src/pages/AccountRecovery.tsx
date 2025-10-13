@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Loader2, User, Mail, Clock, Key, Copy, CheckCircle } from "lucide-react";
+import { Loader2, User, Mail, Clock, Key, Copy, CheckCircle, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface AccountRecoveryRequest {
   id: string;
@@ -33,6 +34,8 @@ const AccountRecovery = () => {
   const [loading, setLoading] = useState(true);
   const [copiedOTP, setCopiedOTP] = useState<string | null>(null);
   const { toast } = useAuth();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchRecoveryRequests();
@@ -67,8 +70,11 @@ const AccountRecovery = () => {
         }));
 
         setRequests(requestsWithProfiles);
+        // Remove any selections that no longer exist
+        setSelectedIds((prev) => prev.filter((id) => requestsWithProfiles.some((r) => r.id === id)));
       } else {
         setRequests([]);
+        setSelectedIds([]);
       }
     } catch (error) {
       console.error("Error fetching recovery requests:", error);
@@ -79,6 +85,48 @@ const AccountRecovery = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const allSelected = requests.length > 0 && selectedIds.length === requests.length;
+  const isAnySelected = selectedIds.length > 0;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(requests.map((r) => r.id));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const deleteSelected = async () => {
+    if (!isAnySelected) return;
+    try {
+      setIsDeleting(true);
+      const { error } = await supabase
+        .from("account_recovery_requests")
+        .delete()
+        .in("id", selectedIds);
+      if (error) throw error;
+      toast({
+        title: "Deleted",
+        description: `${selectedIds.length} request${selectedIds.length === 1 ? "" : "s"} deleted`,
+      });
+      setSelectedIds([]);
+      await fetchRecoveryRequests();
+    } catch (error: any) {
+      console.error("Error deleting requests:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete selected requests",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -154,7 +202,28 @@ const AccountRecovery = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-6">
+            <>
+              <div className="flex items-center justify-between bg-white dark:bg-neutral-950 border border-gray-200 dark:border-gray-800 rounded-md p-3">
+                <div className="flex items-center gap-3">
+                  <Checkbox id="select-all" checked={allSelected} onCheckedChange={toggleSelectAll as any} />
+                  <Label htmlFor="select-all" className="text-sm text-gray-700 dark:text-gray-300">Select All</Label>
+                  {isAnySelected && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{selectedIds.length} selected</span>
+                  )}
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={deleteSelected}
+                  disabled={!isAnySelected || isDeleting}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {isDeleting ? "Deleting..." : "Delete Selected"}
+                </Button>
+              </div>
+
+              <div className="grid gap-6">
               {requests.map((request) => (
                 <Card
                   key={request.id}
@@ -163,6 +232,11 @@ const AccountRecovery = () => {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
+                        <Checkbox
+                          checked={selectedIds.includes(request.id)}
+                          onCheckedChange={() => toggleSelectOne(request.id)}
+                          aria-label="Select request"
+                        />
                         <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                         <div>
                           <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
@@ -249,7 +323,8 @@ const AccountRecovery = () => {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+            </>
           )}
         </div>
       </div>
