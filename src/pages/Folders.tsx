@@ -853,12 +853,44 @@ const Folders = () => {
               {/* Statistics Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div 
-                  className="border rounded-lg p-4 bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
+                  className={`border rounded-lg p-4 bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors ${showInstructors ? 'col-span-2' : ''}`}
                   onClick={() => viewedFolder && (showInstructors ? setShowInstructors(false) : fetchInstructorsForFolder(viewedFolder.id))}
                 >
                   <Label className="text-xs text-muted-foreground">Total Instructors</Label>
                   <p className="text-2xl font-bold mt-1">{folderStats.totalInstructors}</p>
                   <p className="text-xs text-primary mt-2">{showInstructors ? 'Hide list' : 'Click to view list'}</p>
+
+                  {showInstructors && (
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-sm">Instructors</h4>
+                        {loadingInstructors && (
+                          <span className="text-xs text-muted-foreground">Loading...</span>
+                        )}
+                      </div>
+                      {instructors.length === 0 && !loadingInstructors ? (
+                        <p className="text-sm text-muted-foreground">No instructors found.</p>
+                      ) : (
+                        <div className="space-y-2 max-h-80 overflow-auto pr-1">
+                          {instructors.map((inst) => (
+                            <div key={inst.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                              <div>
+                                <p className="text-sm font-medium">{inst.name}</p>
+                                <p className="text-xs text-muted-foreground">{inst.email}</p>
+                              </div>
+                              <span className={
+                                `text-xs px-2 py-0.5 rounded-full font-medium ${inst.submitted 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'}`
+                              }>
+                                {inst.submitted ? 'Submitted' : 'Not submitted'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="border rounded-lg p-4 bg-muted/50">
@@ -887,38 +919,6 @@ const Folders = () => {
                   </p>
                 </div>
                </div>
-
-               {showInstructors && (
-                 <div className="mt-4 border rounded-lg p-4 bg-muted/30">
-                   <div className="flex items-center justify-between mb-3">
-                     <h4 className="font-semibold text-sm">Instructors</h4>
-                     {loadingInstructors && (
-                       <span className="text-xs text-muted-foreground">Loading...</span>
-                     )}
-                   </div>
-                   {instructors.length === 0 && !loadingInstructors ? (
-                     <p className="text-sm text-muted-foreground">No instructors found.</p>
-                   ) : (
-                     <div className="space-y-2 max-h-64 overflow-auto pr-1">
-                       {instructors.map((inst) => (
-                         <div key={inst.id} className="flex items-center justify-between py-1 border-b last:border-b-0">
-                           <div>
-                             <p className="text-sm font-medium">{inst.name}</p>
-                             <p className="text-xs text-muted-foreground">{inst.email}</p>
-                           </div>
-                           <span className={
-                             `text-xs px-2 py-0.5 rounded-full font-medium ${inst.submitted 
-                               ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-                               : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'}`
-                           }>
-                             {inst.submitted ? 'Submitted' : 'Not submitted'}
-                           </span>
-                         </div>
-                       ))}
-                     </div>
-                   )}
-                 </div>
-               )}
              </div>
              
              <DialogFooter className="flex gap-2">
