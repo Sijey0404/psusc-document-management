@@ -352,6 +352,28 @@ const Folders = () => {
         
       if (error) throw error;
       
+      // Determine archived submitters count (only archived accounts who submitted)
+      let archivedSubmittersCount = 0;
+      if (submissions && submissions.length > 0) {
+        const { data: submittersForCount, error: submittersErr } = await supabase
+          .from("documents")
+          .select("submitted_by")
+          .eq("category_id", folder.id);
+        if (submittersErr) throw submittersErr;
+
+        const submittedIds = Array.from(new Set((submittersForCount || []).map((d: any) => d.submitted_by).filter(Boolean)));
+        if (submittedIds.length > 0) {
+          const { count: archivedCount, error: archivedCountErr } = await supabase
+            .from("profiles")
+            .select("*", { count: "exact", head: true })
+            .in("id", submittedIds)
+            .eq("role", false)
+            .eq("archived", true);
+          if (archivedCountErr) throw archivedCountErr;
+          archivedSubmittersCount = archivedCount || 0;
+        }
+      }
+
       // Only count approved documents for Total Submissions
       const totalSubmissions = submissions?.filter((doc: any) => doc.status === 'APPROVED').length || 0;
       let ontime = 0;
@@ -374,7 +396,7 @@ const Folders = () => {
       const rate = instructorCount ? ((totalSubmissions / instructorCount) * 100).toFixed(1) : 0;
       
       setFolderStats({
-        totalInstructors: instructorCount || 0,
+        totalInstructors: (instructorCount || 0) + archivedSubmittersCount,
         totalSubmissions,
         ontime,
         late,
