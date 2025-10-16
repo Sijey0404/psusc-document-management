@@ -84,9 +84,8 @@ const PasswordChangeDialog = ({
         // Redirect based on user type
         if (profile?.role === true) {
           navigate("/admin/dashboard");
-        } else if (profile?.position === "INSTRUCTOR") {
-          navigate("/faculty/dashboard");
         } else {
+          // All non-admin users go to the standard dashboard
           navigate("/dashboard");
         }
       }
