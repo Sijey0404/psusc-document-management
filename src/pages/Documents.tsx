@@ -632,15 +632,17 @@ const Documents = () => {
                 <span>{approving ? "Approving..." : "Approve all Pending"}</span>
               </Button>
             )}
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => navigate('/documents/new')}
-              className="gap-1"
-            >
-              <Plus className="h-4 w-4" />
-              <span>New Document</span>
-            </Button>
+            {isAdmin && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => navigate('/documents/new')}
+                className="gap-1"
+              >
+                <Plus className="h-4 w-4" />
+                <span>New Document</span>
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
