@@ -269,6 +269,7 @@ const Folders = () => {
   const [showInstructors, setShowInstructors] = useState(false);
   const [loadingInstructors, setLoadingInstructors] = useState(false);
   const [instructors, setInstructors] = useState<Array<{ id: string; name: string; email: string; submitted: boolean }>>([]);
+  const [archivedSubmitters, setArchivedSubmitters] = useState<Array<{ id: string; name: string; email: string }>>([]);
 
   // Function to convert MIME type to user-friendly file extension
   const getFileExtension = (fileType: string, fileName: string): string => {
@@ -332,6 +333,7 @@ const Folders = () => {
     setViewDialogOpen(true);
     setShowInstructors(false);
     setInstructors([]);
+    setArchivedSubmitters([]);
     setLoadingInstructors(false);
     
     try {
@@ -390,6 +392,16 @@ const Folders = () => {
   const fetchInstructorsForFolder = async (folderId: string) => {
     try {
       setLoadingInstructors(true);
+      // Fetch submissions for this folder to see who submitted (build set first)
+      const { data: docs, error: docsError } = await supabase
+        .from("documents")
+        .select("submitted_by")
+        .eq("category_id", folderId);
+      if (docsError) throw docsError;
+
+      const submittedIds = (docs || []).map((d: any) => d.submitted_by).filter(Boolean);
+      const submittedSet = new Set(submittedIds);
+
       // Fetch all active faculty
       const { data: faculty, error: facultyError } = await supabase
         .from("profiles")
@@ -398,14 +410,7 @@ const Folders = () => {
         .eq("archived", false);
       if (facultyError) throw facultyError;
 
-      // Fetch submissions for this folder to see who submitted
-      const { data: docs, error: docsError } = await supabase
-        .from("documents")
-        .select("submitted_by")
-        .eq("category_id", folderId);
-      if (docsError) throw docsError;
-
-      const submittedSet = new Set((docs || []).map((d: any) => d.submitted_by).filter(Boolean));
+      // Build active instructors list with submitted flag
       const list = (faculty || []).map((f: any) => ({
         id: f.id,
         name: f.name || "Unknown",
@@ -414,6 +419,27 @@ const Folders = () => {
       }));
       list.sort((a, b) => a.name.localeCompare(b.name));
       setInstructors(list);
+
+      // Fetch archived profiles who submitted to this folder (exclude archived without submissions)
+      if (submittedIds.length > 0) {
+        const { data: archivedProfiles, error: archivedError } = await supabase
+          .from("profiles")
+          .select("id, name, email")
+          .in("id", submittedIds)
+          .eq("role", false)
+          .eq("archived", true);
+        if (archivedError) throw archivedError;
+
+        const archivedList = (archivedProfiles || []).map((p: any) => ({
+          id: p.id,
+          name: p.name || "Unknown",
+          email: p.email || "",
+        }));
+        archivedList.sort((a, b) => a.name.localeCompare(b.name));
+        setArchivedSubmitters(archivedList);
+      } else {
+        setArchivedSubmitters([]);
+      }
       setShowInstructors(true);
     } catch (error: any) {
       toast({
@@ -860,7 +886,7 @@ const Folders = () => {
                   <p className="text-2xl font-bold mt-1">{folderStats.totalInstructors}</p>
                   <p className="text-xs text-primary mt-2">{showInstructors ? 'Hide list' : 'Click to view list'}</p>
 
-                  {showInstructors && (
+                {showInstructors && (
                     <div className="mt-4">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-sm">Instructors</h4>
@@ -887,6 +913,22 @@ const Folders = () => {
                               </span>
                             </div>
                           ))}
+                        {archivedSubmitters.length > 0 && (
+                          <div className="pt-3 mt-3 border-t">
+                            <h5 className="text-xs font-semibold text-muted-foreground mb-2">Archived instructors who submitted</h5>
+                            <div className="space-y-2">
+                              {archivedSubmitters.map((p) => (
+                                <div key={p.id} className="flex items-center justify-between py-1">
+                                  <div>
+                                    <p className="text-sm font-medium">{p.name}</p>
+                                    <p className="text-xs text-muted-foreground">{p.email}</p>
+                                  </div>
+                                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300">Archived</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         </div>
                       )}
                     </div>
@@ -1274,10 +1316,10 @@ const Folders = () => {
                           title={selectedFile?.title}
                           onError={() => {
                             // If iframe fails, show download option
-                            const iframe = document.querySelector('iframe[title="' + selectedFile?.title + '"]');
+                            const iframe = document.querySelector('iframe[title="' + selectedFile?.title + '"]') as HTMLIFrameElement | null;
                             if (iframe) {
-                              iframe.style.display = 'none';
-                              const fallbackDiv = iframe.nextElementSibling as HTMLElement;
+                              (iframe.style as CSSStyleDeclaration).display = 'none';
+                              const fallbackDiv = iframe.nextElementSibling as HTMLElement | null;
                               if (fallbackDiv) {
                                 fallbackDiv.style.display = 'flex';
                               }
