@@ -319,8 +319,10 @@ const Documents = () => {
       setSelectedDocument({ 
         id: '', 
         title: fileName, 
+        description: null,
         file_path: filePath, 
         file_type: fileType,
+        file_size: 0,
         status: 'PENDING',
         created_at: '',
         updated_at: '',

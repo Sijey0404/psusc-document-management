@@ -89,8 +89,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (data) {
         console.log("Profile data retrieved:", data);
+        console.log("Admin role check - Raw role value:", data.role);
+        console.log("Admin role check - Type of role:", typeof data.role);
+        console.log("Admin role check - Boolean conversion:", Boolean(data.role));
+        
         setProfile(data as ProfileType);
-        setIsAdmin(Boolean(data.role));
+        const isAdminUser = Boolean(data.role);
+        setIsAdmin(isAdminUser);
+        
+        console.log("Admin status set to:", isAdminUser);
         
         // Check if password change is required
         if (data.password_change_required) {
@@ -178,17 +185,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (profileError) throw profileError;
         
+        console.log("Sign-in profile check - User ID:", data.user.id);
+        console.log("Sign-in profile check - Profile data:", userProfile);
+        console.log("Sign-in profile check - Role value:", userProfile?.role);
+        console.log("Sign-in profile check - Role type:", typeof userProfile?.role);
+        
         // Check if user is archived
         if (userProfile?.archived) {
+          console.log("User is archived, blocking sign-in");
           await supabase.auth.signOut();
           throw new Error("This account has been archived and cannot access the system");
         }
         
         // Redirect based on role and check if password change required
         if (userProfile) {
-          if (userProfile.role === true) {
+          const isAdmin = userProfile.role === true;
+          console.log("Sign-in redirect - Is admin:", isAdmin);
+          
+          if (isAdmin) {
+            console.log("Redirecting to admin dashboard");
             navigate('/admin/dashboard');
           } else {
+            console.log("Redirecting to user dashboard");
             navigate('/dashboard');
           }
         }

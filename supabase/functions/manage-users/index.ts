@@ -44,21 +44,33 @@ serve(async (req) => {
     }
 
     // Check if the user is an admin
+    console.log("Admin check - Checking user ID:", sessionData.user.id);
     const { data: profileData, error: profileError } = await supabaseClient
       .from("profiles")
       .select("role")
       .eq("id", sessionData.user.id)
       .single();
 
-    console.log("Profile check:", { profileData, profileError });
+    console.log("Admin check - Profile query result:", { profileData, profileError });
+    console.log("Admin check - Role value:", profileData?.role);
+    console.log("Admin check - Role type:", typeof profileData?.role);
+    console.log("Admin check - Strict equality (role === true):", profileData?.role === true);
 
     if (profileError || !profileData || profileData.role !== true) {
-      console.log("Admin check failed:", { profileError, profileData, roleValue: profileData?.role });
+      console.log("Admin check FAILED - Details:", { 
+        hasProfileError: !!profileError, 
+        hasProfileData: !!profileData, 
+        roleValue: profileData?.role,
+        roleType: typeof profileData?.role,
+        strictCheck: profileData?.role === true 
+      });
       return new Response(
         JSON.stringify({ error: "Unauthorized: Admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    console.log("Admin check PASSED - User is authorized as admin");
 
     const requestBody = await req.json();
     console.log("Request body received:", JSON.stringify(requestBody));
