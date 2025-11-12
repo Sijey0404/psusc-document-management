@@ -5,6 +5,3 @@ verify_jwt = false
 
 [functions.verify-password-reset-otp]
 verify_jwt = false
-
-[functions.setup-activity-logs]
-verify_jwt = false

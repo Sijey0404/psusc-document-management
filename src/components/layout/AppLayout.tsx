@@ -3,7 +3,7 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FileText, Folder, Home, LogOut, Settings, Users, Moon, Sun, UserCheck, Key, HardDrive, ScrollText } from "lucide-react";
+import { FileText, Folder, Home, LogOut, Settings, Users, Moon, Sun, UserCheck, Key, HardDrive } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationDropdown } from "@/components/dashboard/NotificationDropdown";
@@ -212,11 +212,9 @@ const AppSidebar = ({ isAdmin }: { isAdmin: boolean }) => {
       { path: "/account-confirmation", icon: UserCheck, label: "Account Confirmation" },
       { path: "/account-recovery", icon: Key, label: "Account Recovery" },
       { path: "/folders", icon: Folder, label: "Folders" },
-      { path: "/admin/file-storage", icon: HardDrive, label: "My Storage" },
-      { path: "/activity-logs", icon: ScrollText, label: "Activity Logs" }
+      { path: "/admin/file-storage", icon: HardDrive, label: "My Storage" }
     ] : [
-      { path: "/faculty-folders", icon: Folder, label: "Folders" },
-      { path: "/activity-logs", icon: ScrollText, label: "My Activity" }
+      { path: "/faculty-folders", icon: Folder, label: "Folders" }
     ]),
     { path: "/settings", icon: Settings, label: "Settings" }
   ];

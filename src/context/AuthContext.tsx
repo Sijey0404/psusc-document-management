@@ -89,15 +89,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (data) {
         console.log("Profile data retrieved:", data);
-        console.log("Admin role check - Raw role value:", data.role);
-        console.log("Admin role check - Type of role:", typeof data.role);
-        console.log("Admin role check - Boolean conversion:", Boolean(data.role));
-        
         setProfile(data as ProfileType);
-        const isAdminUser = Boolean(data.role);
-        setIsAdmin(isAdminUser);
-        
-        console.log("Admin status set to:", isAdminUser);
+        setIsAdmin(Boolean(data.role));
         
         // Check if password change is required
         if (data.password_change_required) {
@@ -177,14 +170,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (data.user) {
         await fetchUserProfile(data.user.id);
         
-        // Log sign-in activity
-        try {
-          const { logAuthActivity } = await import('@/services/activityLogService');
-          await logAuthActivity('SIGN_IN', `User signed in successfully`);
-        } catch (logError) {
-          console.error('Error logging sign-in activity:', logError);
-        }
-        
         const { data: userProfile, error: profileError } = await supabase
           .from('profiles')
           .select('role, password_change_required, archived')
@@ -193,28 +178,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (profileError) throw profileError;
         
-        console.log("Sign-in profile check - User ID:", data.user.id);
-        console.log("Sign-in profile check - Profile data:", userProfile);
-        console.log("Sign-in profile check - Role value:", userProfile?.role);
-        console.log("Sign-in profile check - Role type:", typeof userProfile?.role);
-        
         // Check if user is archived
         if (userProfile?.archived) {
-          console.log("User is archived, blocking sign-in");
           await supabase.auth.signOut();
           throw new Error("This account has been archived and cannot access the system");
         }
         
         // Redirect based on role and check if password change required
         if (userProfile) {
-          const isAdmin = userProfile.role === true;
-          console.log("Sign-in redirect - Is admin:", isAdmin);
-          
-          if (isAdmin) {
-            console.log("Redirecting to admin dashboard");
+          if (userProfile.role === true) {
             navigate('/admin/dashboard');
           } else {
-            console.log("Redirecting to user dashboard");
             navigate('/dashboard');
           }
         }
@@ -258,14 +232,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
-      // Log sign-out activity before signing out
-      try {
-        const { logAuthActivity } = await import('@/services/activityLogService');
-        await logAuthActivity('SIGN_OUT', `User signed out`);
-      } catch (logError) {
-        console.error('Error logging sign-out activity:', logError);
-      }
-      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
