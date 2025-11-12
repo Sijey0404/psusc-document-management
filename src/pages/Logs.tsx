@@ -32,8 +32,7 @@ interface ActivityLog {
   action: string;
   entity_type: string;
   entity_id: string | null;
-  description: string | null;
-  metadata: any;
+  details: string | null;
   ip_address: string | null;
   user_agent: string | null;
   created_at: string;
@@ -87,10 +86,10 @@ const Logs = () => {
         return;
       }
 
-      // Get unique user IDs
+      // Get unique user IDs (user_id references auth.users, but we need profiles for name/email)
       const userIds = [...new Set(logsData.map(log => log.user_id))];
 
-      // Fetch profiles for all users
+      // Fetch profiles for all users (profiles.id should match auth.users.id)
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, name, email")
@@ -140,7 +139,7 @@ const Logs = () => {
         (log) =>
           log.action.toLowerCase().includes(query) ||
           log.entity_type.toLowerCase().includes(query) ||
-          log.description?.toLowerCase().includes(query) ||
+          log.details?.toLowerCase().includes(query) ||
           (log.profiles?.name?.toLowerCase().includes(query)) ||
           (log.profiles?.email?.toLowerCase().includes(query))
       );
@@ -214,14 +213,14 @@ const Logs = () => {
 
   const exportLogs = () => {
     const csvContent = [
-      ["Date", "Time", "User", "Action", "Entity Type", "Description", "IP Address"],
+      ["Date", "Time", "User", "Action", "Entity Type", "Details", "IP Address"],
       ...filteredLogs.map((log) => [
         format(new Date(log.created_at), "yyyy-MM-dd"),
         format(new Date(log.created_at), "HH:mm:ss"),
         isAdmin ? (log.profiles?.name || log.profiles?.email || "Unknown") : "You",
         log.action,
         log.entity_type,
-        log.description || "",
+        log.details || "",
         log.ip_address || "",
       ]),
     ]
@@ -384,8 +383,8 @@ const Logs = () => {
                         </TableCell>
                         <TableCell>{log.entity_type}</TableCell>
                         <TableCell className="max-w-md">
-                          <div className="truncate" title={log.description || ""}>
-                            {log.description || "-"}
+                          <div className="truncate" title={log.details || ""}>
+                            {log.details || "-"}
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">

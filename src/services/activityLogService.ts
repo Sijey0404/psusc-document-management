@@ -5,8 +5,7 @@ export interface LogActivityParams {
   action: string;
   entityType: string;
   entityId?: string;
-  description?: string;
-  metadata?: Record<string, any>;
+  details?: string;
 }
 
 /**
@@ -15,45 +14,28 @@ export interface LogActivityParams {
  */
 export const logActivity = async (params: LogActivityParams): Promise<void> => {
   try {
-    const { userId, action, entityType, entityId, description, metadata } = params;
+    const { userId, action, entityType, entityId, details } = params;
 
     // Get user's IP address and user agent if available
     const ipAddress = null; // Could be extracted from request headers in server-side
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : null;
 
-    // Try to call the database function first
-    const { error: rpcError } = await supabase.rpc("log_activity", {
-      p_user_id: userId,
-      p_action: action,
-      p_entity_type: entityType,
-      p_entity_id: entityId || null,
-      p_description: description || null,
-      p_metadata: metadata || null,
-      p_ip_address: ipAddress,
-      p_user_agent: userAgent,
-    });
+    // Direct insert into activity_logs table
+    const { error: insertError } = await supabase
+      .from("activity_logs")
+      .insert({
+        user_id: userId,
+        action,
+        entity_type: entityType,
+        entity_id: entityId || null,
+        details: details || null,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+      });
 
-    // If RPC fails, fallback to direct insert
-    if (rpcError) {
-      console.warn("RPC log_activity failed, trying direct insert:", rpcError);
-      
-      const { error: insertError } = await supabase
-        .from("activity_logs")
-        .insert({
-          user_id: userId,
-          action,
-          entity_type: entityType,
-          entity_id: entityId || null,
-          description: description || null,
-          metadata: metadata || null,
-          ip_address: ipAddress,
-          user_agent: userAgent,
-        });
-
-      if (insertError) {
-        console.error("Error logging activity (direct insert):", insertError);
-        // Don't throw error to prevent breaking the main flow
-      }
+    if (insertError) {
+      console.error("Error logging activity:", insertError);
+      // Don't throw error to prevent breaking the main flow
     }
   } catch (error) {
     console.error("Error in logActivity:", error);
@@ -69,18 +51,18 @@ export const logDocumentActivity = async (
   action: string,
   documentId: string,
   documentTitle: string,
-  additionalInfo?: Record<string, any>
+  additionalInfo?: string
 ) => {
+  const details = additionalInfo 
+    ? `${action} document: ${documentTitle}. ${additionalInfo}`
+    : `${action} document: ${documentTitle}`;
+    
   await logActivity({
     userId,
     action,
     entityType: "document",
     entityId: documentId,
-    description: `${action} document: ${documentTitle}`,
-    metadata: {
-      document_title: documentTitle,
-      ...additionalInfo,
-    },
+    details,
   });
 };
 
@@ -91,15 +73,18 @@ export const logUserActivity = async (
   userId: string,
   action: string,
   targetUserId?: string,
-  additionalInfo?: Record<string, any>
+  additionalInfo?: string
 ) => {
+  const details = additionalInfo
+    ? `${action} user${targetUserId ? `: ${targetUserId}` : ""}. ${additionalInfo}`
+    : `${action} user${targetUserId ? `: ${targetUserId}` : ""}`;
+    
   await logActivity({
     userId,
     action,
     entityType: "user",
     entityId: targetUserId,
-    description: `${action} user${targetUserId ? `: ${targetUserId}` : ""}`,
-    metadata: additionalInfo,
+    details,
   });
 };
 
@@ -109,14 +94,17 @@ export const logUserActivity = async (
 export const logAuthActivity = async (
   userId: string,
   action: "LOGIN" | "LOGOUT" | "PASSWORD_CHANGE" | "PASSWORD_RESET",
-  additionalInfo?: Record<string, any>
+  additionalInfo?: string
 ) => {
+  const details = additionalInfo
+    ? `User ${action.toLowerCase()}. ${additionalInfo}`
+    : `User ${action.toLowerCase()}`;
+    
   await logActivity({
     userId,
     action,
     entityType: "auth",
-    description: `User ${action.toLowerCase()}`,
-    metadata: additionalInfo,
+    details,
   });
 };
 
@@ -128,18 +116,18 @@ export const logFolderActivity = async (
   action: string,
   folderId: string,
   folderName: string,
-  additionalInfo?: Record<string, any>
+  additionalInfo?: string
 ) => {
+  const details = additionalInfo
+    ? `${action} folder: ${folderName}. ${additionalInfo}`
+    : `${action} folder: ${folderName}`;
+    
   await logActivity({
     userId,
     action,
     entityType: "folder",
     entityId: folderId,
-    description: `${action} folder: ${folderName}`,
-    metadata: {
-      folder_name: folderName,
-      ...additionalInfo,
-    },
+    details,
   });
 };
 
