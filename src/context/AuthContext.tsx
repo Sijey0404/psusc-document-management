@@ -177,6 +177,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (data.user) {
         await fetchUserProfile(data.user.id);
         
+        // Log sign-in activity
+        try {
+          const { logAuthActivity } = await import('@/services/activityLogService');
+          await logAuthActivity('SIGN_IN', `User signed in successfully`);
+        } catch (logError) {
+          console.error('Error logging sign-in activity:', logError);
+        }
+        
         const { data: userProfile, error: profileError } = await supabase
           .from('profiles')
           .select('role, password_change_required, archived')
@@ -250,6 +258,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      // Log sign-out activity before signing out
+      try {
+        const { logAuthActivity } = await import('@/services/activityLogService');
+        await logAuthActivity('SIGN_OUT', `User signed out`);
+      } catch (logError) {
+        console.error('Error logging sign-out activity:', logError);
+      }
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       

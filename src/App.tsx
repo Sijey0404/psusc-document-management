@@ -23,6 +23,7 @@ import AccountConfirmation from "./pages/AccountConfirmation";
 import AccountRecovery from "./pages/AccountRecovery";
 import AdminFileStorage from "./pages/AdminFileStorage";
 import FacultyRatings from "./pages/FacultyRatings";
+import ActivityLogs from "./pages/ActivityLogs";
 
 const queryClient = new QueryClient();
 
@@ -116,6 +117,7 @@ const App = () => (
               <Route path="/documents/new" element={<DocumentSubmission />} />
               <Route path="/documents/:id" element={<DocumentDetails />} />
               <Route path="/ratings" element={<FacultyRatings />} />
+              <Route path="/activity-logs" element={<ActivityLogs />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
             
