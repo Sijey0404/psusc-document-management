@@ -66,15 +66,10 @@ const Logs = () => {
     try {
       setLoading(true);
       
+      // Fetch logs
       let query = supabase
         .from("activity_logs")
-        .select(`
-          *,
-          profiles:user_id (
-            name,
-            email
-          )
-        `)
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(1000);
 
@@ -83,11 +78,46 @@ const Logs = () => {
         query = query.eq("user_id", user.id);
       }
 
-      const { data, error } = await query;
+      const { data: logsData, error: logsError } = await query;
 
-      if (error) throw error;
+      if (logsError) throw logsError;
 
-      setLogs(data || []);
+      if (!logsData || logsData.length === 0) {
+        setLogs([]);
+        return;
+      }
+
+      // Get unique user IDs
+      const userIds = [...new Set(logsData.map(log => log.user_id))];
+
+      // Fetch profiles for all users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .in("id", userIds);
+
+      if (profilesError) {
+        console.warn("Error fetching profiles:", profilesError);
+      }
+
+      // Create a map of user_id to profile
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach(profile => {
+          profilesMap.set(profile.id, {
+            name: profile.name,
+            email: profile.email
+          });
+        });
+      }
+
+      // Merge logs with profile data
+      const logsWithProfiles = logsData.map(log => ({
+        ...log,
+        profiles: profilesMap.get(log.user_id) || null
+      }));
+
+      setLogs(logsWithProfiles);
     } catch (error: any) {
       console.error("Error fetching logs:", error);
       toast({
