@@ -347,7 +347,7 @@ const Logs = () => {
                       {isAdmin && <TableHead>User</TableHead>}
                       <TableHead>Action</TableHead>
                       <TableHead>Entity Type</TableHead>
-                      <TableHead>Description</TableHead>
+                      <TableHead>Details</TableHead>
                       <TableHead>IP Address</TableHead>
                     </TableRow>
                   </TableHeader>
