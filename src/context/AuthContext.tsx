@@ -148,8 +148,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 
                 await fetchUserProfile(authData.user.id);
                 
-                // Log login activity
-                await logAuthActivity(authData.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`);
+                // Log login activity (don't await to avoid blocking)
+                logAuthActivity(authData.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`).catch(err => {
+                  console.error("Failed to log login activity:", err);
+                });
                 
                 if (profileData.role === true) {
                   navigate('/admin/dashboard');
@@ -189,8 +191,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw new Error("This account has been archived and cannot access the system");
         }
         
-        // Log login activity with date/time
-        await logAuthActivity(data.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`);
+        // Log login activity with date/time (don't await to avoid blocking)
+        logAuthActivity(data.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`).catch(err => {
+          console.error("Failed to log login activity:", err);
+        });
         
         // Redirect based on role and check if password change required
         if (userProfile) {

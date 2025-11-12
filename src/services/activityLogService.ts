@@ -45,12 +45,30 @@ export const logActivity = async (params: LogActivityParams): Promise<void> => {
   try {
     const { userId, action, entityType, entityId, details } = params;
 
+    // Get current user to verify authentication
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    
+    if (!currentUser || currentUser.id !== userId) {
+      console.warn("Cannot log activity: User ID mismatch or not authenticated", {
+        currentUserId: currentUser?.id,
+        requestedUserId: userId
+      });
+      return;
+    }
+
     // Get user's IP address and user agent if available
-    const ipAddress = await getUserIPAddress();
+    // Don't await IP address to avoid blocking - fetch it in parallel
+    const ipAddressPromise = getUserIPAddress();
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : null;
 
+    // Wait for IP address with a short timeout
+    const ipAddress = await Promise.race([
+      ipAddressPromise,
+      new Promise<string | null>((resolve) => setTimeout(() => resolve(null), 1000))
+    ]);
+
     // Direct insert into activity_logs table
-    const { error: insertError } = await supabase
+    const { data, error: insertError } = await supabase
       .from("activity_logs")
       .insert({
         user_id: userId,
@@ -60,11 +78,26 @@ export const logActivity = async (params: LogActivityParams): Promise<void> => {
         details: details || null,
         ip_address: ipAddress,
         user_agent: userAgent,
-      });
+      })
+      .select()
+      .single();
 
     if (insertError) {
-      console.error("Error logging activity:", insertError);
+      console.error("Error logging activity:", {
+        error: insertError,
+        action,
+        entityType,
+        userId,
+        details
+      });
       // Don't throw error to prevent breaking the main flow
+    } else {
+      console.log("Activity logged successfully:", {
+        id: data?.id,
+        action,
+        entityType,
+        userId
+      });
     }
   } catch (error) {
     console.error("Error in logActivity:", error);

@@ -54,8 +54,33 @@ const Logs = () => {
   const [dateFilter, setDateFilter] = useState<string>("all");
 
   useEffect(() => {
-    fetchLogs();
+    if (user) {
+      fetchLogs();
+    }
   }, [user, isAdmin]);
+
+  // Refresh logs when the page becomes visible (user might have logged in from another tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        fetchLogs();
+      }
+    };
+    
+    const handleFocus = () => {
+      if (user) {
+        fetchLogs();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user]);
 
   useEffect(() => {
     applyFilters();
@@ -79,7 +104,15 @@ const Logs = () => {
 
       const { data: logsData, error: logsError } = await query;
 
-      if (logsError) throw logsError;
+      if (logsError) {
+        console.error("Error fetching logs:", logsError);
+        toast({
+          title: "Error fetching logs",
+          description: logsError.message || "Failed to load activity logs",
+          variant: "destructive",
+        });
+        throw logsError;
+      }
 
       if (!logsData || logsData.length === 0) {
         setLogs([]);
