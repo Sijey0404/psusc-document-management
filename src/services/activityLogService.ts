@@ -1,13 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
-// Type definitions for activity logs
-export type ActivityAction = "LOGIN" | "LOGOUT" | "CREATE" | "UPDATE" | "DELETE" | "APPROVE" | "REJECT" | "VIEW" | "DOWNLOAD" | "PASSWORD_CHANGE" | "PASSWORD_RESET";
-export type EntityType = "DOCUMENT" | "USER" | "FOLDER" | "NOTIFICATION" | "CATEGORY" | "DEPARTMENT" | "AUTH";
-
 export interface LogActivityParams {
   userId: string;
-  action: ActivityAction | string;
-  entityType?: EntityType | string;
+  action: string;
+  entityType: string;
   entityId?: string;
   details?: string;
 }
@@ -15,11 +11,13 @@ export interface LogActivityParams {
 /**
  * Gets the user's IP address using a third-party service
  * Falls back to null if unable to fetch
+ * Uses a timeout to prevent blocking
  */
 const getUserIPAddress = async (): Promise<string | null> => {
   try {
+    // Use Promise.race with timeout to prevent blocking
     const timeoutPromise = new Promise<null>((resolve) => 
-      setTimeout(() => resolve(null), 2000)
+      setTimeout(() => resolve(null), 2000) // 2 second timeout
     );
     
     const ipPromise = fetch('https://api.ipify.org?format=json')
@@ -40,37 +38,24 @@ const getUserIPAddress = async (): Promise<string | null> => {
 };
 
 /**
- * Log an activity to the activity_logs table
+ * Logs a user activity to the activity_logs table
+ * @param params - Activity log parameters
  */
 export const logActivity = async (params: LogActivityParams): Promise<void> => {
   try {
     const { userId, action, entityType, entityId, details } = params;
 
-    // Get current user to verify authentication
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
-    if (!currentUser || currentUser.id !== userId) {
-      console.warn("Cannot log activity: User ID mismatch or not authenticated");
-      return;
-    }
-
-    // Get user's IP address and user agent
-    const ipAddressPromise = getUserIPAddress();
+    // Get user's IP address and user agent if available
+    const ipAddress = await getUserIPAddress();
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : null;
 
-    // Wait for IP address with timeout
-    const ipAddress = await Promise.race([
-      ipAddressPromise,
-      new Promise<string | null>((resolve) => setTimeout(() => resolve(null), 1000))
-    ]);
-
-    // Insert into activity_logs table - Cast to any to bypass TypeScript until types are regenerated
-    const { error: insertError } = await (supabase as any)
+    // Direct insert into activity_logs table
+    const { error: insertError } = await supabase
       .from("activity_logs")
       .insert({
         user_id: userId,
         action,
-        entity_type: entityType || null,
+        entity_type: entityType,
         entity_id: entityId || null,
         details: details || null,
         ip_address: ipAddress,
@@ -79,11 +64,11 @@ export const logActivity = async (params: LogActivityParams): Promise<void> => {
 
     if (insertError) {
       console.error("Error logging activity:", insertError);
-    } else {
-      console.log("Activity logged:", action, entityType);
+      // Don't throw error to prevent breaking the main flow
     }
   } catch (error) {
     console.error("Error in logActivity:", error);
+    // Don't throw error to prevent breaking the main flow
   }
 };
 
@@ -94,17 +79,17 @@ export const logDocumentActivity = async (
   userId: string,
   action: string,
   documentId: string,
-  documentTitle?: string,
+  documentTitle: string,
   additionalInfo?: string
 ) => {
   const details = additionalInfo 
     ? `${action} document: ${documentTitle}. ${additionalInfo}`
     : `${action} document: ${documentTitle}`;
     
-  return logActivity({
+  await logActivity({
     userId,
     action,
-    entityType: "DOCUMENT",
+    entityType: "document",
     entityId: documentId,
     details,
   });
@@ -123,10 +108,10 @@ export const logUserActivity = async (
     ? `${action} user${targetUserId ? `: ${targetUserId}` : ""}. ${additionalInfo}`
     : `${action} user${targetUserId ? `: ${targetUserId}` : ""}`;
     
-  return logActivity({
+  await logActivity({
     userId,
     action,
-    entityType: "USER",
+    entityType: "user",
     entityId: targetUserId,
     details,
   });
@@ -142,13 +127,13 @@ export const logAuthActivity = async (
 ) => {
   const details = additionalInfo
     ? `User ${action.toLowerCase()}. ${additionalInfo}`
-    : `User ${action.toLowerCase()}. ${additionalInfo}`;
+    : `User ${action.toLowerCase()}`;
     
-  return logActivity({
+  await logActivity({
     userId,
     action,
-    entityType: "AUTH",
-    details: additionalInfo,
+    entityType: "auth",
+    details,
   });
 };
 
@@ -159,18 +144,19 @@ export const logFolderActivity = async (
   userId: string,
   action: string,
   folderId: string,
-  folderName?: string,
+  folderName: string,
   additionalInfo?: string
 ) => {
   const details = additionalInfo
     ? `${action} folder: ${folderName}. ${additionalInfo}`
     : `${action} folder: ${folderName}`;
     
-  return logActivity({
+  await logActivity({
     userId,
     action,
-    entityType: "FOLDER",
+    entityType: "folder",
     entityId: folderId,
     details,
   });
 };
+
