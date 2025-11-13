@@ -318,9 +318,11 @@ const Documents = () => {
       // Set the selected file and open the viewer
       setSelectedDocument({ 
         id: '', 
-        title: fileName, 
+        title: fileName,
+        description: null,
         file_path: filePath, 
         file_type: fileType,
+        file_size: 0,
         status: 'PENDING',
         created_at: '',
         updated_at: '',

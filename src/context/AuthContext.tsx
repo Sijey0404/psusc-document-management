@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { User, Session } from '@supabase/supabase-js';
 import { User as ProfileType } from '@/types';
 import PasswordChangeDialog from '@/components/auth/PasswordChangeDialog';
+import { logAuthActivity } from '@/services/activityLogService';
 
 interface AuthContextProps {
   user: User | null;
@@ -146,6 +147,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 });
                 
                 await fetchUserProfile(authData.user.id);
+                
+                // Log login activity (don't await to avoid blocking)
+                logAuthActivity(authData.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`).catch(err => {
+                  console.error("Failed to log login activity:", err);
+                });
+                
                 if (profileData.role === true) {
                   navigate('/admin/dashboard');
                 } else {
@@ -183,6 +190,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           await supabase.auth.signOut();
           throw new Error("This account has been archived and cannot access the system");
         }
+        
+        // Log login activity with date/time (don't await to avoid blocking)
+        logAuthActivity(data.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`).catch(err => {
+          console.error("Failed to log login activity:", err);
+        });
         
         // Redirect based on role and check if password change required
         if (userProfile) {
