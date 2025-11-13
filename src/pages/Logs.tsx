@@ -229,7 +229,7 @@ const Logs = () => {
 
   return (
     <AppLayout isAdmin={isAdmin}>
-      <div className="container mx-auto py-6 space-y-6">
+      <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -304,7 +304,7 @@ const Logs = () => {
             </div>
 
             {/* Logs Table */}
-            <ScrollArea className="h-[600px] rounded-md border">
+            <ScrollArea className="rounded-md border max-h-[65vh]">
               {loading ? (
                 <div className="flex items-center justify-center h-40">
                   <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -315,47 +315,49 @@ const Logs = () => {
                   <p>No activity logs found</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date & Time</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Details</TableHead>
-                      <TableHead>IP Address</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-mono text-xs whitespace-nowrap">
-                          {format(new Date(log.created_at), "MMM dd, yyyy HH:mm:ss")}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{log.profiles?.name || 'Unknown'}</div>
-                            <div className="text-xs text-muted-foreground">{log.profiles?.email}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getActionBadgeVariant(log.action)}>
-                            {log.action}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{log.entity_type || '-'}</Badge>
-                        </TableCell>
-                        <TableCell className="max-w-md truncate">
-                          {log.details || '-'}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {log.ip_address || '-'}
-                        </TableCell>
+                <div className="min-w-[960px]">
+                  <Table className="text-sm">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="py-2">Date & Time</TableHead>
+                        <TableHead className="py-2">User</TableHead>
+                        <TableHead className="py-2">Action</TableHead>
+                        <TableHead className="py-2">Type</TableHead>
+                        <TableHead className="py-2">Details</TableHead>
+                        <TableHead className="py-2">IP Address</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLogs.map((log) => (
+                        <TableRow key={log.id} className="text-xs md:text-sm">
+                          <TableCell className="font-mono text-xs whitespace-nowrap py-2">
+                            {format(new Date(log.created_at), "MMM dd, yyyy HH:mm:ss")}
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <div className="space-y-0.5">
+                              <div className="font-medium text-sm">{log.profiles?.name || 'Unknown'}</div>
+                              <div className="text-xs text-muted-foreground">{log.profiles?.email}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <Badge variant={getActionBadgeVariant(log.action)} className="text-xs px-2 py-0.5">
+                              {log.action}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <Badge variant="outline" className="text-xs px-2 py-0.5">{log.entity_type || '-'}</Badge>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate py-2 text-xs md:text-sm">
+                            {log.details || '-'}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs py-2">
+                            {log.ip_address || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </ScrollArea>
           </CardContent>
