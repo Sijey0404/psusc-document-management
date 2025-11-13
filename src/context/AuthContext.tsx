@@ -244,6 +244,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      if (user) {
+        try {
+          await logAuthActivity(user.id, "LOGOUT", `Logged out at ${new Date().toLocaleString()}`);
+        } catch (activityError) {
+          console.error("Failed to log logout activity:", activityError);
+        }
+      }
+
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       

@@ -47,10 +47,21 @@ export const logActivity = async (params: LogActivityParams): Promise<void> => {
     const { userId, action, entityType, entityId, details } = params;
 
     // Get current user to verify authentication
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
-    if (!currentUser || currentUser.id !== userId) {
-      console.warn("Cannot log activity: User ID mismatch or not authenticated");
+    const { data: { session } } = await supabase.auth.getSession();
+    let currentUser = session?.user ?? null;
+
+    if (!currentUser) {
+      const { data: { user } } = await supabase.auth.getUser();
+      currentUser = user ?? null;
+    }
+
+    if (!currentUser) {
+      console.warn("Cannot log activity: No authenticated user session");
+      return;
+    }
+
+    if (currentUser.id !== userId) {
+      console.warn("Cannot log activity: User ID mismatch", { expected: currentUser.id, received: userId });
       return;
     }
 
@@ -142,13 +153,13 @@ export const logAuthActivity = async (
 ) => {
   const details = additionalInfo
     ? `User ${action.toLowerCase()}. ${additionalInfo}`
-    : `User ${action.toLowerCase()}. ${additionalInfo}`;
+    : `User ${action.toLowerCase()}.`;
     
   return logActivity({
     userId,
     action,
     entityType: "AUTH",
-    details: additionalInfo,
+    details,
   });
 };
 
