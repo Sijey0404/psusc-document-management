@@ -9,35 +9,6 @@ export interface LogActivityParams {
 }
 
 /**
- * Gets the user's IP address using a third-party service
- * Falls back to null if unable to fetch
- * Uses a timeout to prevent blocking
- */
-const getUserIPAddress = async (): Promise<string | null> => {
-  try {
-    // Use Promise.race with timeout to prevent blocking
-    const timeoutPromise = new Promise<null>((resolve) => 
-      setTimeout(() => resolve(null), 2000) // 2 second timeout
-    );
-    
-    const ipPromise = fetch('https://api.ipify.org?format=json')
-      .then(async (response) => {
-        if (response.ok) {
-          const data = await response.json();
-          return data.ip || null;
-        }
-        return null;
-      })
-      .catch(() => null);
-    
-    return await Promise.race([ipPromise, timeoutPromise]);
-  } catch (error) {
-    console.warn("Could not fetch IP address:", error);
-    return null;
-  }
-};
-
-/**
  * Logs a user activity to the activity_logs table
  * @param params - Activity log parameters
  */
@@ -46,7 +17,7 @@ export const logActivity = async (params: LogActivityParams): Promise<void> => {
     const { userId, action, entityType, entityId, details } = params;
 
     // Get user's IP address and user agent if available
-    const ipAddress = await getUserIPAddress();
+    const ipAddress = null; // Could be extracted from request headers in server-side
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : null;
 
     // Direct insert into activity_logs table
