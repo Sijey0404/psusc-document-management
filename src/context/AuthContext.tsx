@@ -149,9 +149,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 await fetchUserProfile(authData.user.id);
                 
                 // Log login activity (don't await to avoid blocking)
-                logAuthActivity(authData.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`).catch(err => {
-                  console.error("Failed to log login activity:", err);
-                });
+                try {
+                  await logAuthActivity(authData.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`);
+                } catch (activityError) {
+                  console.error("Failed to log login activity:", activityError);
+                }
                 
                 if (profileData.role === true) {
                   navigate('/admin/dashboard');
@@ -192,9 +194,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         
         // Log login activity with date/time (don't await to avoid blocking)
-        logAuthActivity(data.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`).catch(err => {
-          console.error("Failed to log login activity:", err);
-        });
+        try {
+          await logAuthActivity(data.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`);
+        } catch (activityError) {
+          console.error("Failed to log login activity:", activityError);
+        }
         
         // Redirect based on role and check if password change required
         if (userProfile) {

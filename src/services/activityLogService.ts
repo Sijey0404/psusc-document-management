@@ -90,11 +90,13 @@ export const logActivity = async (params: LogActivityParams): Promise<void> => {
 
     if (insertError) {
       console.error("Error logging activity:", insertError);
-    } else {
-      console.log("Activity logged:", action, entityType);
+      throw insertError;
     }
+
+    console.log("Activity logged:", action, entityType);
   } catch (error) {
     console.error("Error in logActivity:", error);
+    throw error;
   }
 };
 
