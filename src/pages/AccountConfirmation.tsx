@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PendingUserService } from "@/services/pendingUserService";
 import { PendingUser } from "@/types/pendingUser";
 import { formatDistanceToNow } from "date-fns";
-import { CheckCircle, XCircle, Clock, User, Mail, Building, Briefcase } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, Mail, Building, Briefcase, Eye, EyeOff } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   AlertDialog,
@@ -26,6 +26,8 @@ const AccountConfirmation = () => {
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const [showDialogPassword, setShowDialogPassword] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -98,6 +100,7 @@ const AccountConfirmation = () => {
 
   const openApprovalDialog = (user: PendingUser) => {
     setSelectedUser(user);
+    setShowDialogPassword(false);
     setShowApprovalDialog(true);
   };
 
@@ -178,9 +181,19 @@ const AccountConfirmation = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">Default Password:</span>
-                      <code className="bg-muted px-2 py-1 rounded text-sm">
-                        {user.default_password}
+                      <code className="bg-muted px-2 py-1 rounded text-sm select-all">
+                        {visiblePasswords[user.id] 
+                          ? user.default_password 
+                          : "•".repeat(Math.max(8, user.default_password?.length || 8))}
                       </code>
+                      <button
+                        type="button"
+                        className="p-1 rounded hover:bg-muted transition-colors"
+                        aria-label={visiblePasswords[user.id] ? "Hide password" : "Show password"}
+                        onClick={() => setVisiblePasswords(prev => ({ ...prev, [user.id]: !prev[user.id] }))}
+                      >
+                        {visiblePasswords[user.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
                   
@@ -215,7 +228,20 @@ const AccountConfirmation = () => {
               <AlertDialogTitle>Approve User Registration</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to approve {selectedUser?.name}'s registration? 
-                This will create their account with the default password: <strong>{selectedUser?.default_password}</strong>
+                This will create their account with the default password:{" "}
+                <strong>
+                  {showDialogPassword 
+                    ? selectedUser?.default_password 
+                    : "•".repeat(Math.max(8, (selectedUser?.default_password?.length || 8)))}
+                </strong>
+                <button
+                  type="button"
+                  className="ml-2 inline-flex items-center p-1 rounded hover:bg-muted transition-colors align-middle"
+                  aria-label={showDialogPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowDialogPassword(prev => !prev)}
+                >
+                  {showDialogPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
