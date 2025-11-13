@@ -3,7 +3,6 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FileText, Folder, Home, LogOut, Settings, Users, Moon, Sun, UserCheck, Key, HardDrive, ScrollText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
@@ -97,114 +96,85 @@ export const AppLayout = ({
   };
   
   return (
-    <TooltipProvider>
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
-          <AppSidebar isAdmin={adminStatus} />
-          <div className="flex flex-col flex-1">
-            <header className="h-14 border-b bg-background dark:bg-card flex items-center justify-between px-4 lg:px-6 shadow-sm sticky top-0 z-20">
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar isAdmin={adminStatus} />
+        <div className="flex flex-col flex-1">
+          <header className="h-14 border-b bg-background dark:bg-card flex items-center justify-between px-4 lg:px-6 shadow-sm sticky top-0 z-20">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="hover:bg-muted rounded-md p-2 transition-colors duration-200" />
               <div className="flex items-center gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarTrigger className="hover:bg-muted rounded-md p-2 transition-colors duration-200" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Toggle Sidebar</p>
-                  </TooltipContent>
-                </Tooltip>
-                <div className="flex items-center gap-2">
-                  <motion.img 
-                    initial={{ scale: 0.9, opacity: 0 }} 
-                    animate={{ scale: 1, opacity: 1 }} 
-                    transition={{ duration: 0.3 }}
-                    src="/lovable-uploads/7e798f9c-5e5c-4155-8e58-d487fb7288a9.png" 
-                    alt="PSU Logo" 
-                    className="h-8 max-h-[32px] w-auto hidden sm:block" 
-                  />
-                  <motion.h1 
-                    initial={{ x: -10, opacity: 0 }} 
-                    animate={{ x: 0, opacity: 1 }} 
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                    className="font-semibold text-lg hidden sm:inline-block text-royal"
-                  >
-                    PSU Document Management System
-                  </motion.h1>
-                </div>
+                <motion.img 
+                  initial={{ scale: 0.9, opacity: 0 }} 
+                  animate={{ scale: 1, opacity: 1 }} 
+                  transition={{ duration: 0.3 }}
+                  src="/lovable-uploads/7e798f9c-5e5c-4155-8e58-d487fb7288a9.png" 
+                  alt="PSU Logo" 
+                  className="h-8 max-h-[32px] w-auto hidden sm:block" 
+                />
+                <motion.h1 
+                  initial={{ x: -10, opacity: 0 }} 
+                  animate={{ x: 0, opacity: 1 }} 
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  className="font-semibold text-lg hidden sm:inline-block text-royal"
+                >
+                  PSU Document Management System
+                </motion.h1>
               </div>
-              <div className="flex items-center gap-3">
-                {adminStatus ? <NotificationDropdown /> : <FacultyNotificationDropdown />}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={toggleDarkMode} 
-                        className="relative overflow-hidden hover:bg-muted transition-colors duration-200 h-9 w-9"
-                      >
-                        {darkMode ? <Sun className="h-4 w-4 text-golden" /> : <Moon className="h-4 w-4" />}
-                      </Button>
-                    </motion.div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Avatar className="cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all h-9 w-9">
-                        <AvatarImage src="" />
-                        <AvatarFallback className="bg-royal text-white text-sm">
-                          {getInitials()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </motion.div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Profile</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setShowLogoutDialog(true)} 
-                        disabled={isLoading} 
-                        className="relative overflow-hidden hover:bg-muted transition-colors duration-200 h-9 w-9"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        {isLoading && (
-                          <span className="absolute inset-0 flex items-center justify-center bg-background/80">
-                            <span className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                          </span>
-                        )}
-                      </Button>
-                    </motion.div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Logout</p>
-                  </TooltipContent>
-                </Tooltip>
-                
-                <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to log out of your account?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>No</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleLogout}>Yes</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </header>
+            </div>
+            <div className="flex items-center gap-3">
+              {adminStatus ? <NotificationDropdown /> : <FacultyNotificationDropdown />}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={toggleDarkMode} 
+                  className="relative overflow-hidden hover:bg-muted transition-colors duration-200 h-9 w-9"
+                >
+                  {darkMode ? <Sun className="h-4 w-4 text-golden" /> : <Moon className="h-4 w-4" />}
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Avatar className="cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all h-9 w-9">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="bg-royal text-white text-sm">
+                    {getInitials()}
+                  </AvatarFallback>
+                </Avatar>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setShowLogoutDialog(true)} 
+                  disabled={isLoading} 
+                  className="relative overflow-hidden hover:bg-muted transition-colors duration-200 h-9 w-9"
+                >
+                  <LogOut className="h-4 w-4" />
+                  {isLoading && (
+                    <span className="absolute inset-0 flex items-center justify-center bg-background/80">
+                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    </span>
+                  )}
+                </Button>
+              </motion.div>
+              
+              <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to log out of your account?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>No</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleLogout}>Yes</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </header>
           <main className="flex-1 p-3 md:p-4 lg:p-5 overflow-auto">
             <motion.div 
               key={location.pathname} 
@@ -219,7 +189,6 @@ export const AppLayout = ({
         </div>
       </div>
     </SidebarProvider>
-    </TooltipProvider>
   );
 };
 

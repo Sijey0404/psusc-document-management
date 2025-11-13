@@ -5,7 +5,6 @@ import { useToast } from '@/hooks/use-toast';
 import { User, Session } from '@supabase/supabase-js';
 import { User as ProfileType } from '@/types';
 import PasswordChangeDialog from '@/components/auth/PasswordChangeDialog';
-import { logAuthActivity } from '@/services/activityLogService';
 
 interface AuthContextProps {
   user: User | null;
@@ -147,14 +146,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 });
                 
                 await fetchUserProfile(authData.user.id);
-                
-                // Log login activity (don't await to avoid blocking)
-                try {
-                  await logAuthActivity(authData.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`);
-                } catch (activityError) {
-                  console.error("Failed to log login activity:", activityError);
-                }
-                
                 if (profileData.role === true) {
                   navigate('/admin/dashboard');
                 } else {
@@ -191,13 +182,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (userProfile?.archived) {
           await supabase.auth.signOut();
           throw new Error("This account has been archived and cannot access the system");
-        }
-        
-        // Log login activity with date/time (don't await to avoid blocking)
-        try {
-          await logAuthActivity(data.user.id, "LOGIN", `Logged in at ${new Date().toLocaleString()}`);
-        } catch (activityError) {
-          console.error("Failed to log login activity:", activityError);
         }
         
         // Redirect based on role and check if password change required
@@ -248,14 +232,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
-      if (user) {
-        try {
-          await logAuthActivity(user.id, "LOGOUT", `Logged out at ${new Date().toLocaleString()}`);
-        } catch (activityError) {
-          console.error("Failed to log logout activity:", activityError);
-        }
-      }
-
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
