@@ -229,9 +229,9 @@ const Logs = () => {
 
   return (
     <AppLayout isAdmin={isAdmin}>
-      <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
-        <Card>
-          <CardHeader>
+      <div className="flex-1 px-4 lg:px-6 pb-5 pt-2 space-y-4">
+        <Card className="shadow-sm border border-border/60">
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="h-6 w-6" />
@@ -248,9 +248,9 @@ const Logs = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -299,12 +299,12 @@ const Logs = () => {
             </div>
 
             {/* Results Count */}
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs text-muted-foreground">
               Showing {filteredLogs.length} of {logs.length} log{logs.length !== 1 ? 's' : ''}
             </div>
 
             {/* Logs Table */}
-            <ScrollArea className="rounded-md border max-h-[65vh]">
+            <ScrollArea className="rounded-md border max-h-[60vh]">
               {loading ? (
                 <div className="flex items-center justify-center h-40">
                   <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -315,42 +315,42 @@ const Logs = () => {
                   <p>No activity logs found</p>
                 </div>
               ) : (
-                <div className="min-w-[960px]">
-                  <Table className="text-sm">
+                <div className="min-w-[880px]">
+                  <Table className="text-xs md:text-sm">
                     <TableHeader>
-                      <TableRow>
-                        <TableHead className="py-2">Date & Time</TableHead>
-                        <TableHead className="py-2">User</TableHead>
-                        <TableHead className="py-2">Action</TableHead>
-                        <TableHead className="py-2">Type</TableHead>
-                        <TableHead className="py-2">Details</TableHead>
-                        <TableHead className="py-2">IP Address</TableHead>
+                      <TableRow className="h-10">
+                        <TableHead className="py-2 text-[11px] uppercase tracking-wide">Date & Time</TableHead>
+                        <TableHead className="py-2 text-[11px] uppercase tracking-wide">User</TableHead>
+                        <TableHead className="py-2 text-[11px] uppercase tracking-wide">Action</TableHead>
+                        <TableHead className="py-2 text-[11px] uppercase tracking-wide">Type</TableHead>
+                        <TableHead className="py-2 text-[11px] uppercase tracking-wide">Details</TableHead>
+                        <TableHead className="py-2 text-[11px] uppercase tracking-wide">IP Address</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredLogs.map((log) => (
-                        <TableRow key={log.id} className="text-xs md:text-sm">
-                          <TableCell className="font-mono text-xs whitespace-nowrap py-2">
+                        <TableRow key={log.id} className="text-xs md:text-sm h-12">
+                          <TableCell className="font-mono text-[11px] whitespace-nowrap py-2 pr-4">
                             {format(new Date(log.created_at), "MMM dd, yyyy HH:mm:ss")}
                           </TableCell>
-                          <TableCell className="py-2">
-                            <div className="space-y-0.5">
-                              <div className="font-medium text-sm">{log.profiles?.name || 'Unknown'}</div>
-                              <div className="text-xs text-muted-foreground">{log.profiles?.email}</div>
+                          <TableCell className="py-2 pr-4">
+                            <div className="space-y-0.5 leading-tight">
+                              <div className="font-medium text-xs md:text-sm">{log.profiles?.name || 'Unknown'}</div>
+                              <div className="text-[11px] text-muted-foreground">{log.profiles?.email}</div>
                             </div>
                           </TableCell>
                           <TableCell className="py-2">
-                            <Badge variant={getActionBadgeVariant(log.action)} className="text-xs px-2 py-0.5">
+                            <Badge variant={getActionBadgeVariant(log.action)} className="text-[11px] px-2 py-0.5">
                               {log.action}
                             </Badge>
                           </TableCell>
                           <TableCell className="py-2">
-                            <Badge variant="outline" className="text-xs px-2 py-0.5">{log.entity_type || '-'}</Badge>
+                            <Badge variant="outline" className="text-[11px] px-2 py-0.5">{log.entity_type || '-'}</Badge>
                           </TableCell>
-                          <TableCell className="max-w-xs truncate py-2 text-xs md:text-sm">
+                          <TableCell className="max-w-xs truncate py-2 pr-4 text-xs md:text-sm">
                             {log.details || '-'}
                           </TableCell>
-                          <TableCell className="font-mono text-xs py-2">
+                          <TableCell className="font-mono text-[11px] py-2">
                             {log.ip_address || '-'}
                           </TableCell>
                         </TableRow>
