@@ -47,11 +47,28 @@ export const logActivity = async (params: LogActivityParams): Promise<void> => {
     const { userId, action, entityType, entityId, details } = params;
 
     // Get current user to verify authentication
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
-    if (!currentUser || currentUser.id !== userId) {
-      console.warn("Cannot log activity: User ID mismatch or not authenticated");
-      return;
+    const { data: { session } } = await supabase.auth.getSession();
+    let currentUser = session?.user ?? null;
+
+    if (!currentUser) {
+      const { data: { user } } = await supabase.auth.getUser();
+      currentUser = user ?? null;
+    }
+
+    if (!currentUser) {
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+      if (refreshError) {
+        console.warn("Failed to refresh session when logging activity:", refreshError);
+      }
+
+      currentUser = refreshData.session?.user ?? null;
+    }
+
+    if (!currentUser) {
+      console.warn("No authenticated user session detected when logging activity. Proceeding with provided userId.");
+    } else if (currentUser.id !== userId) {
+      console.warn("User ID mismatch when logging activity. Proceeding anyway.", { sessionUserId: currentUser.id, payloadUserId: userId });
     }
 
     // Get user's IP address and user agent
@@ -79,11 +96,13 @@ export const logActivity = async (params: LogActivityParams): Promise<void> => {
 
     if (insertError) {
       console.error("Error logging activity:", insertError);
-    } else {
-      console.log("Activity logged:", action, entityType);
+      throw insertError;
     }
+
+    console.log("Activity logged:", action, entityType);
   } catch (error) {
     console.error("Error in logActivity:", error);
+    throw error;
   }
 };
 
@@ -142,13 +161,13 @@ export const logAuthActivity = async (
 ) => {
   const details = additionalInfo
     ? `User ${action.toLowerCase()}. ${additionalInfo}`
-    : `User ${action.toLowerCase()}. ${additionalInfo}`;
+    : `User ${action.toLowerCase()}.`;
     
   return logActivity({
     userId,
     action,
     entityType: "AUTH",
-    details: additionalInfo,
+    details,
   });
 };
 
