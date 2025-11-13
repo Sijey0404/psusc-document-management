@@ -25,6 +25,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface ActivityLog {
   id: string;
@@ -52,6 +60,8 @@ const Logs = () => {
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [entityFilter, setEntityFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
 
   useEffect(() => {
     if (user) {
@@ -206,6 +216,7 @@ const Logs = () => {
     }
 
     setFilteredLogs(filtered);
+    setCurrentPage(1);
   };
 
   const getActionBadgeVariant = (action: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -226,6 +237,69 @@ const Logs = () => {
 
   const uniqueActions = [...new Set(logs.map(log => log.action))];
   const uniqueEntityTypes = [...new Set(logs.map(log => log.entity_type).filter(Boolean))];
+
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedLogs = filteredLogs.slice(startIndex, startIndex + pageSize);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const renderPagination = () => {
+    if (filteredLogs.length <= pageSize) {
+      return null;
+    }
+
+    const pageNumbers: number[] = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <Pagination className="justify-end">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setCurrentPage((prev) => Math.max(1, prev - 1));
+              }}
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+            />
+          </PaginationItem>
+          {pageNumbers.map((page) => (
+            <PaginationItem key={page}>
+              <PaginationLink
+                href="#"
+                isActive={page === currentPage}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setCurrentPage(page);
+                }}
+                className="min-w-[36px] justify-center"
+              >
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
+          <PaginationItem>
+            <PaginationNext
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+              }}
+              className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    );
+  };
 
   return (
     <AppLayout isAdmin={isAdmin}>
@@ -300,7 +374,9 @@ const Logs = () => {
 
             {/* Results Count */}
             <div className="text-xs text-muted-foreground">
-              Showing {filteredLogs.length} of {logs.length} log{logs.length !== 1 ? 's' : ''}
+              Showing {filteredLogs.length === 0 ? 0 : startIndex + 1}-
+              {Math.min(startIndex + pageSize, filteredLogs.length)} of {logs.length} log
+              {logs.length !== 1 ? "s" : ""}
             </div>
 
             {/* Logs Table */}
@@ -328,7 +404,7 @@ const Logs = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredLogs.map((log) => (
+                      {paginatedLogs.map((log) => (
                         <TableRow key={log.id} className="text-xs md:text-sm h-12">
                           <TableCell className="font-mono text-[11px] whitespace-nowrap py-2 pr-4">
                             {format(new Date(log.created_at), "MMM dd, yyyy HH:mm:ss")}
@@ -360,6 +436,7 @@ const Logs = () => {
                 </div>
               )}
             </ScrollArea>
+            {renderPagination()}
           </CardContent>
         </Card>
       </div>
