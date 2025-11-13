@@ -229,9 +229,9 @@ const Logs = () => {
 
   return (
     <AppLayout isAdmin={isAdmin}>
-      <div className="flex-1 px-4 lg:px-6 pb-5 pt-2 space-y-4">
-        <Card className="shadow-sm border border-border/60">
-          <CardHeader className="pb-3">
+      <div className="flex-1 space-y-0">
+        <Card className="shadow-none border-none rounded-none">
+          <CardHeader className="px-6 py-4 pb-3 border-b border-border/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="h-6 w-6" />
@@ -248,7 +248,7 @@ const Logs = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="px-6 py-4 space-y-3">
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="relative">
