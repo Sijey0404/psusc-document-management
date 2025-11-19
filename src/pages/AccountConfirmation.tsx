@@ -18,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/context/AuthContext";
 
 const AccountConfirmation = () => {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
@@ -29,15 +30,24 @@ const AccountConfirmation = () => {
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   const [showDialogPassword, setShowDialogPassword] = useState(false);
   const { toast } = useToast();
+  const { profile } = useAuth();
+  const adminDepartmentId = profile?.department_id || null;
 
   useEffect(() => {
-    fetchPendingUsers();
-  }, []);
+    if (!adminDepartmentId) {
+      setPendingUsers([]);
+      setLoading(false);
+      return;
+    }
+    fetchPendingUsers(adminDepartmentId);
+  }, [adminDepartmentId]);
 
-  const fetchPendingUsers = async () => {
+  const fetchPendingUsers = async (departmentId: string) => {
     try {
+      setLoading(true);
       const users = await PendingUserService.getPendingUsers();
-      setPendingUsers(users);
+      const filteredUsers = users.filter((user) => user.department_id === departmentId);
+      setPendingUsers(filteredUsers);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -59,7 +69,9 @@ const AccountConfirmation = () => {
         title: "User Approved",
         description: `${selectedUser.name}'s account has been created successfully. Default password: ${selectedUser.default_password}`,
       });
-      await fetchPendingUsers();
+      if (adminDepartmentId) {
+        await fetchPendingUsers(adminDepartmentId);
+      }
       setShowApprovalDialog(false);
       setSelectedUser(null);
     } catch (error: any) {
@@ -84,7 +96,9 @@ const AccountConfirmation = () => {
         description: `${selectedUser.name}'s registration has been rejected`,
         variant: "destructive",
       });
-      await fetchPendingUsers();
+      if (adminDepartmentId) {
+        await fetchPendingUsers(adminDepartmentId);
+      }
       setShowRejectionDialog(false);
       setSelectedUser(null);
     } catch (error: any) {
