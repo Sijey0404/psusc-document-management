@@ -110,6 +110,7 @@ const Folders = () => {
     deadline: "",
     semester: "",
     parent_id: null as string | null,
+  type: "DEADLINE" as "PLAIN" | "DEADLINE",
   };
   const [formData, setFormData] = useState(defaultFormState);
 
@@ -212,6 +213,7 @@ const Folders = () => {
     setFormData({
       ...defaultFormState,
       parent_id: currentFolder?.id ?? null,
+      type: "DEADLINE",
     });
     setFormOpen(true);
   };
@@ -273,8 +275,8 @@ const Folders = () => {
       const payload = {
         name: formData.name,
         description: formData.description || null,
-        deadline: formData.deadline || null,
-        semester: formData.semester || null,
+        deadline: formData.type === "DEADLINE" ? (formData.deadline || null) : null,
+        semester: formData.type === "DEADLINE" ? (formData.semester || null) : null,
         department_id: adminDepartmentId,
         parent_id: formData.parent_id ?? null,
       };
@@ -327,6 +329,7 @@ const Folders = () => {
       deadline: folder.deadline ? new Date(folder.deadline).toISOString().slice(0, 16) : "",
       semester: folder.semester || "",
       parent_id: folder.parent_id ?? null,
+      type: folder.deadline || folder.semester ? "DEADLINE" : "PLAIN",
     });
     setFormOpen(true);
   };
@@ -385,6 +388,7 @@ const Folders = () => {
     setFormData({
       ...defaultFormState,
       parent_id: currentFolder?.id ?? null,
+      type: "DEADLINE",
     });
     setSelectedFolder(null);
     setFormOpen(false);
@@ -1109,6 +1113,25 @@ const Folders = () => {
             </DialogHeader>
             
             <form onSubmit={handleSubmit} className="space-y-4 py-4">
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant={formData.type === "PLAIN" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setFormData((prev) => ({ ...prev, type: "PLAIN" }))}
+                >
+                  Plain Folder
+                </Button>
+                <Button
+                  type="button"
+                  variant={formData.type === "DEADLINE" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setFormData((prev) => ({ ...prev, type: "DEADLINE" }))}
+                >
+                  Deadline Folder
+                </Button>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="name">Folder Name *</Label>
                 <Input
@@ -1131,40 +1154,45 @@ const Folders = () => {
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="semester">Semester</Label>
-                <Select
-                  value={formData.semester}
-                  onValueChange={(value) => setFormData({ ...formData, semester: value })}
-                >
-                  <SelectTrigger id="semester" className="w-full">
-                    <SelectValue placeholder="Select semester (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1st Semester">1st Semester</SelectItem>
-                    <SelectItem value="2nd Semester">2nd Semester</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Optional: Select the semester for this folder.
-                </p>
-              </div>
+              {formData.type === "DEADLINE" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="semester">Semester</Label>
+                    <Select
+                      value={formData.semester}
+                      onValueChange={(value) => setFormData({ ...formData, semester: value })}
+                    >
+                      <SelectTrigger id="semester" className="w-full">
+                        <SelectValue placeholder="Select semester (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1st Semester">1st Semester</SelectItem>
+                        <SelectItem value="2nd Semester">2nd Semester</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Optional: Select the semester for this folder.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="deadline">Deadline</Label>
+                    <Input
+                      id="deadline"
+                      type="datetime-local"
+                      value={formData.deadline}
+                      onChange={(e) => setFormData({ ...formData, deadline: normalizeDateTimeLocalValue(e.target.value) })}
+                      step="60"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Optional deadline for this folder.
+                    </p>
+                  </div>
+                </>
+              )}
               
-              <div className="space-y-2">
-                <Label htmlFor="deadline">Deadline</Label>
-                <Input
-                  id="deadline"
-                  type="datetime-local"
-                  value={formData.deadline}
-                  onChange={(e) => setFormData({ ...formData, deadline: normalizeDateTimeLocalValue(e.target.value) })}
-                  step="60"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Optional deadline for this folder.
-                </p>
-                <div className="text-xs text-muted-foreground border rounded-md bg-muted/40 px-3 py-2 mt-2">
-                  Parent folder: {formData.parent_id ? (currentFolder?.name || "Parent folder") : "Root"}
-                </div>
+              <div className="text-xs text-muted-foreground border rounded-md bg-muted/40 px-3 py-2 mt-2">
+                Parent folder: {formData.parent_id ? (currentFolder?.name || "Parent folder") : "Root"}
               </div>
               
               <DialogFooter className="pt-4">
