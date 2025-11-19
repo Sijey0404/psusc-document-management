@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PendingUserService } from "@/services/pendingUserService";
 import { PendingUser } from "@/types/pendingUser";
 import { formatDistanceToNow } from "date-fns";
-import { CheckCircle, XCircle, Clock, User, Mail, Building, Briefcase, Eye, EyeOff } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, Mail, Building, Briefcase, Eye, EyeOff, KeyRound } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   AlertDialog,
@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthContext";
+import { generateDepartmentCode } from "@/utils/departmentCode";
 
 const AccountConfirmation = () => {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
@@ -32,6 +33,7 @@ const AccountConfirmation = () => {
   const { toast } = useToast();
   const { profile } = useAuth();
   const adminDepartmentId = profile?.department_id || null;
+  const departmentCode = adminDepartmentId ? generateDepartmentCode(adminDepartmentId) : "";
 
   useEffect(() => {
     if (!adminDepartmentId) {
@@ -139,11 +141,27 @@ const AccountConfirmation = () => {
   return (
     <AppLayout isAdmin={true}>
       <div className="space-y-4">
-        <div className="mb-8">
+        <div className="mb-8 space-y-4">
           <h1 className="text-2xl font-bold mb-1">Account Confirmation</h1>
           <p className="text-muted-foreground text-sm">
             Review and approve new user registrations
           </p>
+          {adminDepartmentId ? (
+            <div className="flex items-center gap-3 rounded-md border border-dashed border-primary/40 bg-primary/5 px-4 py-3 w-full max-w-md">
+              <KeyRound className="w-5 h-5 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Department Code</p>
+                <p className="text-xl font-semibold tracking-widest font-mono">{departmentCode}</p>
+                <p className="text-xs text-muted-foreground">
+                  Share this 8-digit code with faculty in your department so they can register.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-md border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
+              Your profile does not have an assigned department. Pending registrations cannot be displayed.
+            </div>
+          )}
         </div>
 
         {pendingUsers.length === 0 ? (

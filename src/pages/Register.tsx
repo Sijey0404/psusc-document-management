@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { PendingUserService } from "@/services/pendingUserService";
 import { useEffect } from "react";
+import { generateDepartmentCode } from "@/utils/departmentCode";
 
 const Register = () => {
   const [firstName, setFirstName] = useState("");
@@ -20,6 +21,7 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [position, setPosition] = useState("INSTRUCTOR");
   const [departmentId, setDepartmentId] = useState("");
+  const [departmentCodeInput, setDepartmentCodeInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<any[]>([]);
   const { toast } = useToast();
@@ -66,6 +68,27 @@ const Register = () => {
       toast({
         title: "Missing Information",
         description: "Please provide your first, middle, and last name.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    if (!departmentId) {
+      toast({
+        title: "Missing Department",
+        description: "Please select a department.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    const expectedCode = generateDepartmentCode(departmentId);
+    if (!departmentCodeInput || departmentCodeInput.trim() !== expectedCode) {
+      toast({
+        title: "Invalid Department Code",
+        description: "The department code you entered is incorrect. Please contact your department admin.",
         variant: "destructive",
       });
       setLoading(false);
@@ -137,6 +160,7 @@ const Register = () => {
       setConfirmPassword("");
       setPosition("INSTRUCTOR");
       setDepartmentId(departments[0]?.id || "");
+      setDepartmentCodeInput("");
     } catch (error: any) {
       console.error("Registration error:", error);
       const isDuplicateEmailError = typeof error?.message === "string" && error.message.toLowerCase().includes("duplicate key value");
@@ -243,7 +267,10 @@ const Register = () => {
                 <Label htmlFor="department">Department</Label>
                 <Select
                   value={departmentId}
-                  onValueChange={setDepartmentId}
+                  onValueChange={(value) => {
+                    setDepartmentId(value);
+                    setDepartmentCodeInput("");
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select department" />
@@ -256,6 +283,21 @@ const Register = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="departmentCode">Department Code</Label>
+                <Input
+                  id="departmentCode"
+                  type="text"
+                  placeholder="Enter 8-digit code from your department admin"
+                  value={departmentCodeInput}
+                  onChange={(e) => setDepartmentCodeInput(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Please request the 8-digit code from your department administrator before registering.
+                </p>
               </div>
               
               <div className="space-y-2">
