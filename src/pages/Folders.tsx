@@ -553,12 +553,13 @@ const Folders = () => {
       
       // Calculate submission rate based on unique faculty submitters
       const uniqueSubmitterCount = uniqueApprovedUsers.size;
+      const totalInstructorBase = (instructorCount || 0) + archivedSubmittersCount;
       const rate = instructorCount
-        ? ((uniqueSubmitterCount / instructorCount) * 100).toFixed(1)
+        ? ((uniqueSubmitterCount / Math.max(totalInstructorBase, 1)) * 100).toFixed(1)
         : "0.0";
       
       setFolderStats({
-        totalInstructors: (instructorCount || 0) + archivedSubmittersCount,
+        totalInstructors: totalInstructorBase,
         totalSubmissions: totalApprovedSubmissions,
         ontime,
         late,
