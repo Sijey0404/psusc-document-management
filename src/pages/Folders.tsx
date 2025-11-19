@@ -39,6 +39,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Folder = {
   id: string;
@@ -986,11 +992,13 @@ const Folders = () => {
             </div>
           ) : (
             filteredFolders.map((folder) => (
-              <div
-                key={folder.id}
-                className="border rounded-xl p-4 bg-card/70 hover:border-primary/60 transition group"
-                onDoubleClick={() => handleEnterFolder(folder)}
-              >
+              <TooltipProvider key={folder.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="border rounded-xl p-4 bg-card/70 hover:border-primary/60 transition group cursor-pointer"
+                      onDoubleClick={() => handleEnterFolder(folder)}
+                    >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -1028,7 +1036,13 @@ const Folders = () => {
                     <Trash className="h-4 w-4 mr-1" /> Delete
                   </Button>
                 </div>
-              </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Double click to open folder</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             ))
           )}
         </div>
