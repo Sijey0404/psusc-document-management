@@ -902,10 +902,6 @@ const Folders = () => {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button onClick={openCreateFolderDialog} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Add New Folder
-            </Button>
           </div>
         </div>
         
