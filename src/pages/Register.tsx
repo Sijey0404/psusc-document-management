@@ -202,29 +202,32 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-university-light p-4">
+    <div className="min-h-screen flex items-center justify-center bg-university-light p-4 py-6">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-university-primary">
-            PSU San Carlos Campus
-          </h1>
-          <p className="text-xl text-university-dark mt-1">
-            Document Management System
-          </p>
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <img src="/lovable-uploads/7e798f9c-5e5c-4155-8e58-d487fb7288a9.png" alt="PSU Logo" className="w-12 h-12" />
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-university-primary">
+              PSU San Carlos Campus
+            </h1>
+            <p className="text-base text-university-dark mt-0.5">
+              Document Management System
+            </p>
+          </div>
         </div>
         
         <Card className="border-university-primary/20">
-          <CardHeader>
-            <CardTitle>Register</CardTitle>
-            <CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Register</CardTitle>
+            <CardDescription className="text-xs">
               Submit your registration for admin approval
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleRegister}>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+            <CardContent className="space-y-2.5">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="firstName" className="text-xs">First Name</Label>
                   <Input
                     id="firstName"
                     type="text"
@@ -232,10 +235,11 @@ const Register = () => {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
+                    className="h-8 text-sm"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="middleName">Middle Name</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="middleName" className="text-xs">Middle Name</Label>
                   <Input
                     id="middleName"
                     type="text"
@@ -243,10 +247,11 @@ const Register = () => {
                     value={middleName}
                     onChange={(e) => setMiddleName(e.target.value)}
                     required
+                    className="h-8 text-sm"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="lastName" className="text-xs">Last Name</Label>
                   <Input
                     id="lastName"
                     type="text"
@@ -254,12 +259,13 @@ const Register = () => {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
+                    className="h-8 text-sm"
                   />
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -267,64 +273,66 @@ const Register = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="h-8 text-sm"
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="position">Position</Label>
-                <Select
-                  value={position}
-                  onValueChange={setPosition}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select position" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="INSTRUCTOR">Instructor</SelectItem>
-                    <SelectItem value="ASSOCIATE_PROFESSOR">Associate Professor</SelectItem>
-                    <SelectItem value="ASSISTANT_PROFESSOR">Assistant Professor</SelectItem>
-                    <SelectItem value="EXCHANGE_FACULTY">Exchange faculty</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Select
-                  value={departmentId}
-                  onValueChange={(value) => {
-                    setDepartmentId(value);
-                    setDepartmentCodeValue("");
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="position" className="text-xs">Position</Label>
+                  <Select
+                    value={position}
+                    onValueChange={setPosition}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select position" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="INSTRUCTOR">Instructor</SelectItem>
+                      <SelectItem value="ASSOCIATE_PROFESSOR">Associate Professor</SelectItem>
+                      <SelectItem value="ASSISTANT_PROFESSOR">Assistant Professor</SelectItem>
+                      <SelectItem value="EXCHANGE_FACULTY">Exchange faculty</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <Label htmlFor="department" className="text-xs">Department</Label>
+                  <Select
+                    value={departmentId}
+                    onValueChange={(value) => {
+                      setDepartmentId(value);
+                      setDepartmentCodeValue("");
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-800">
-                    <strong>Note:</strong> A default password will be generated for your account. 
-                    You will need to change it after your first login once approved by an admin.
+              <div className="space-y-1.5">
+                <div className="p-2 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-800">
+                    <strong>Note:</strong> A default password will be generated. Change it after first login.
                   </p>
                 </div>
               </div>
             </CardContent>
             
-            <CardFooter className="flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={loading}>
+            <CardFooter className="flex-col space-y-2 pt-3">
+              <Button type="submit" className="w-full h-9 text-sm" disabled={loading}>
                 {loading ? "Submitting..." : "Submit Registration"}
               </Button>
-              <div className="text-center text-sm">
+              <div className="text-center text-xs">
                 Already have an account?{" "}
                 <Link to="/login" className="text-primary hover:underline">
                   Sign in here
@@ -390,8 +398,8 @@ const Register = () => {
           </DialogContent>
         </Dialog>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-3 text-center">
+          <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} Pangasinan State University - San Carlos Campus
           </p>
         </div>
