@@ -48,6 +48,7 @@ type Folder = {
   semester: string | null;
   created_at: string;
   updated_at: string;
+  department_id?: string | null;
 };
 
 import { useAuth } from "@/context/AuthContext";
@@ -79,9 +80,23 @@ const Folders = () => {
   const fetchFolders = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      if (!adminDepartmentId) {
+        setFolders([]);
+        setFilteredFolders([]);
+        setLoading(false);
+        toast({
+          title: "Department not set",
+          description: "Please contact the system administrator to assign your department before managing folders.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { data, error } = await (supabase as any)
         .from("document_categories")
-        .select("*, semester")
+        .select("*, semester, department_id")
+        .eq("department_id", adminDepartmentId)
         .order("name");
         
       if (error) throw error;
@@ -135,19 +150,30 @@ const Folders = () => {
     e.preventDefault();
     
     try {
+      if (!adminDepartmentId) {
+        toast({
+          title: "Department not set",
+          description: "Please contact the system administrator to assign your department before creating folders.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const payload = {
         name: formData.name,
         description: formData.description || null,
         deadline: formData.deadline || null,
         semester: formData.semester || null,
+        department_id: adminDepartmentId,
       };
       
       if (selectedFolder) {
         // Update existing folder
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("document_categories")
           .update(payload)
-          .eq("id", selectedFolder.id);
+          .eq("id", selectedFolder.id)
+          .eq("department_id", adminDepartmentId);
           
         if (error) throw error;
         
@@ -157,7 +183,7 @@ const Folders = () => {
         });
       } else {
         // Create new folder
-        const { data: newFolder, error } = await supabase
+        const { data: newFolder, error } = await (supabase as any)
           .from("document_categories")
           .insert([payload])
           .select();
@@ -202,15 +228,17 @@ const Folders = () => {
       const { count, error: countError } = await supabase
         .from("documents")
         .select("*", { count: "exact", head: true })
-        .eq("category_id", selectedFolder.id);
+        .eq("category_id", selectedFolder.id)
+        .eq("department_id", adminDepartmentId);
         
       if (countError) throw countError;
       
       // Delete the folder (this will now cascade delete documents)
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("document_categories")
         .delete()
-        .eq("id", selectedFolder.id);
+        .eq("id", selectedFolder.id)
+        .eq("department_id", adminDepartmentId);
         
       if (error) throw error;
       
