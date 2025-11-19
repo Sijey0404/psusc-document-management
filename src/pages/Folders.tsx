@@ -53,6 +53,24 @@ type Folder = {
 
 import { useAuth } from "@/context/AuthContext";
 
+const ISO_DATETIME_LOCAL_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+const normalizeDateTimeLocalValue = (value: string): string => {
+  if (!value) return "";
+  if (ISO_DATETIME_LOCAL_REGEX.test(value)) {
+    return value;
+  }
+  
+  const sanitizedValue = value.replace(/--/g, "").replace(/[^\d/: TAMPamp]/g, "").trim();
+  if (!sanitizedValue) return "";
+  
+  const parsedDate = new Date(sanitizedValue);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+  
+  return parsedDate.toISOString().slice(0, 16);
+};
+
 const Folders = () => {
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -945,7 +963,8 @@ const Folders = () => {
                   id="deadline"
                   type="datetime-local"
                   value={formData.deadline}
-                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, deadline: normalizeDateTimeLocalValue(e.target.value) })}
+                  step="60"
                 />
                 <p className="text-xs text-muted-foreground">
                   Optional deadline for this folder.
