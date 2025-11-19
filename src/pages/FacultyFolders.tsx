@@ -468,21 +468,8 @@ const FacultyFolders = () => {
               )}
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-muted-foreground">
-              {currentFolder ? `Viewing folders inside "${currentFolder.name}"` : "Viewing root-level folders"}
-            </div>
-            {!currentFolder && (
-                <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1"
-                onClick={openCreateFolderDialog}
-                >
-                <Plus className="h-4 w-4" />
-                New Root Folder
-                </Button>
-              )}
+          <div className="text-xs text-muted-foreground">
+            {currentFolder ? `Viewing folders inside "${currentFolder.name}"` : "Viewing root-level folders"}
           </div>
         </div>
 
