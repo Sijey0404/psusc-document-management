@@ -532,7 +532,9 @@ const Folders = () => {
       }
 
       // Only count approved documents for Total Submissions
-      const totalSubmissions = submissions?.filter((doc: any) => doc.status === 'APPROVED').length || 0;
+      const approvedSubmissions = submissions?.filter((doc: any) => doc.status === 'APPROVED') || [];
+      const totalApprovedSubmissions = approvedSubmissions.length;
+      const uniqueApprovedUsers = new Set(approvedSubmissions.map((doc: any) => doc.submitted_by).filter(Boolean));
       let ontime = 0;
       let late = 0;
       
@@ -549,12 +551,15 @@ const Folders = () => {
         });
       }
       
-      // Calculate submission rate (submissions / instructors * 100)
-      const rate = instructorCount ? ((totalSubmissions / instructorCount) * 100).toFixed(1) : 0;
+      // Calculate submission rate based on unique faculty submitters
+      const uniqueSubmitterCount = uniqueApprovedUsers.size;
+      const rate = instructorCount
+        ? ((uniqueSubmitterCount / instructorCount) * 100).toFixed(1)
+        : "0.0";
       
       setFolderStats({
         totalInstructors: (instructorCount || 0) + archivedSubmittersCount,
-        totalSubmissions,
+        totalSubmissions: totalApprovedSubmissions,
         ontime,
         late,
         rate: Number(rate),
