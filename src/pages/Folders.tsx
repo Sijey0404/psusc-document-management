@@ -543,10 +543,10 @@ const Folders = () => {
       let ontime = 0;
       let late = 0;
       
-      // Calculate ontime and late submissions
-      if (folder.deadline && submissions) {
+      // Calculate ontime and late submissions (only count approved submissions)
+      if (folder.deadline && approvedSubmissions.length > 0) {
         const deadlineDate = new Date(folder.deadline);
-        submissions.forEach(doc => {
+        approvedSubmissions.forEach((doc: any) => {
           const submissionDate = new Date(doc.created_at);
           if (submissionDate <= deadlineDate) {
             ontime++;
@@ -554,6 +554,10 @@ const Folders = () => {
             late++;
           }
         });
+      } else if (approvedSubmissions.length > 0 && !folder.deadline) {
+        // If no deadline, all approved submissions are considered ontime
+        ontime = approvedSubmissions.length;
+        late = 0;
       }
       
       // Calculate submission rate based on unique faculty submitters
