@@ -51,7 +51,8 @@ interface ActivityLog {
 }
 
 const Logs = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, profile } = useAuth();
+  const adminDepartmentId = profile?.department_id || null;
   const { toast } = useToast();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<ActivityLog[]>([]);
@@ -67,7 +68,7 @@ const Logs = () => {
     if (user) {
       fetchLogs();
     }
-  }, [user, isAdmin]);
+  }, [user, isAdmin, adminDepartmentId]);
 
   // Refresh logs when the page becomes visible
   useEffect(() => {
@@ -100,6 +101,35 @@ const Logs = () => {
     try {
       setLoading(true);
       
+      let departmentProfiles: any[] = [];
+      let allowedUserIds: string[] | null = null;
+      
+      if (isAdmin) {
+        if (!adminDepartmentId) {
+          setLogs([]);
+          setFilteredLogs([]);
+          setLoading(false);
+          return;
+        }
+        
+        const { data: deptProfiles, error: deptError } = await supabase
+          .from("profiles")
+          .select("id, name, email")
+          .eq("department_id", adminDepartmentId);
+        
+        if (deptError) throw deptError;
+        
+        departmentProfiles = deptProfiles || [];
+        allowedUserIds = departmentProfiles.map((profile: any) => profile.id);
+        
+        if (allowedUserIds.length === 0) {
+          setLogs([]);
+          setFilteredLogs([]);
+          setLoading(false);
+          return;
+        }
+      }
+      
       // Fetch logs - Cast to any to bypass TypeScript until types are regenerated
       let query = (supabase as any)
         .from("activity_logs")
@@ -107,8 +137,10 @@ const Logs = () => {
         .order("created_at", { ascending: false })
         .limit(1000);
 
-      // If not admin, only fetch user's own logs
-      if (!isAdmin && user) {
+      // Apply department or user filter
+      if (isAdmin && allowedUserIds) {
+        query = query.in("user_id", allowedUserIds);
+      } else if (!isAdmin && user) {
         query = query.eq("user_id", user.id);
       }
 
@@ -129,28 +161,38 @@ const Logs = () => {
         return;
       }
 
-      // Get unique user IDs - Cast to string array
-      const userIds = [...new Set(logsData.map((log: any) => log.user_id))] as string[];
-
-      // Fetch profiles for all users
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, name, email")
-        .in("id", userIds);
-
-      if (profilesError) {
-        console.warn("Error fetching profiles:", profilesError);
-      }
-
-      // Create a map of user_id to profile
-      const profilesMap = new Map();
-      if (profilesData) {
-        profilesData.forEach(profile => {
-          profilesMap.set(profile.id, {
-            name: profile.name,
-            email: profile.email
+      let profilesMap = new Map();
+      
+      if (isAdmin) {
+        departmentProfiles.forEach((deptProfile: any) => {
+          profilesMap.set(deptProfile.id, {
+            name: deptProfile.name,
+            email: deptProfile.email,
           });
         });
+      } else {
+        // Get unique user IDs - Cast to string array
+        const userIds = [...new Set(logsData.map((log: any) => log.user_id))] as string[];
+        
+        if (userIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, name, email")
+            .in("id", userIds);
+          
+          if (profilesError) {
+            console.warn("Error fetching profiles:", profilesError);
+          }
+          
+          if (profilesData) {
+            profilesData.forEach(profile => {
+              profilesMap.set(profile.id, {
+                name: profile.name,
+                email: profile.email
+              });
+            });
+          }
+        }
       }
 
       // Merge logs with profile data - Cast appropriately

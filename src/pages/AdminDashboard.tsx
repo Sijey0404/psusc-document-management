@@ -14,8 +14,11 @@ import { StatsGrid } from "@/components/dashboard/StatsGrid";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { motion } from "framer-motion";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { useAuth } from "@/context/AuthContext";
 
 const AdminDashboard = () => {
+  const { profile } = useAuth();
+  const adminDepartmentId = profile?.department_id || null;
   const navigate = useNavigate();
   const [recentSubmissions, setRecentSubmissions] = useState<DocumentSubmission[]>([]);
   const [summaryStats, setSummaryStats] = useState({
@@ -35,26 +38,28 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      
-      try {
+  const fetchDashboardData = async (departmentId: string) => {
+    setLoading(true);
+    
+    try {
         // Fetch document stats by status
         const { count: pendingCount, error: pendingError } = await supabase
           .from('documents')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'PENDING');
+          .eq('status', 'PENDING')
+          .eq('department_id', departmentId);
         
         const { count: approvedCount, error: approvedError } = await supabase
           .from('documents')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'APPROVED');
+          .eq('status', 'APPROVED')
+          .eq('department_id', departmentId);
         
         const { count: rejectedCount, error: rejectedError } = await supabase
           .from('documents')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'REJECTED');
+          .eq('status', 'REJECTED')
+          .eq('department_id', departmentId);
         
         if (pendingError || approvedError || rejectedError) 
           throw pendingError || approvedError || rejectedError;
@@ -81,7 +86,8 @@ const AdminDashboard = () => {
         const { count: usersCount, error: usersError } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true })
-          .eq('role', false);
+          .eq('role', false)
+          .eq('department_id', departmentId);
         
         if (usersError) throw usersError;
         
@@ -102,6 +108,7 @@ const AdminDashboard = () => {
             category_id,
             profiles:submitted_by (name, email)
           `)
+          .eq('department_id', departmentId)
           .order('created_at', { ascending: false })
           .limit(10);
         
@@ -147,7 +154,8 @@ const AdminDashboard = () => {
         const { data: instructorProfiles, error: profilesError } = await supabase
           .from('profiles' as any)
           .select('id')
-          .eq('position', 'INSTRUCTOR');
+          .eq('position', 'INSTRUCTOR')
+          .eq('department_id', departmentId);
         
         if (!profilesError && instructorProfiles && instructorProfiles.length > 0) {
           const instructorIds = instructorProfiles.map((p: any) => p.id);
@@ -206,24 +214,45 @@ const AdminDashboard = () => {
             }
           }
         }
-      } catch (error: any) {
-        console.error("Error fetching dashboard data:", error);
-        toast({
-          title: "Error",
-          description: error.message || "Failed to fetch dashboard data",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-        // Add a timeout for the initial loading screen for better UX
-        setTimeout(() => {
-          setInitialLoading(false);
-        }, 800);
-      }
-    };
-    
-    fetchDashboardData();
-  }, []);
+    } catch (error: any) {
+      console.error("Error fetching dashboard data:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch dashboard data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      // Add a timeout for the initial loading screen for better UX
+      setTimeout(() => {
+        setInitialLoading(false);
+      }, 800);
+    }
+  };
+
+  useEffect(() => {
+    if (!adminDepartmentId) {
+      setSummaryStats({
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        totalDocuments: 0,
+        totalUsers: 0,
+        approvalRate: 0,
+      });
+      setRecentSubmissions([]);
+      setSubmissionStats({
+        total_submissions: 0,
+        on_time_submissions: 0,
+        late_submissions: 0,
+        on_time_percentage: 0,
+      });
+      setLoading(false);
+      setInitialLoading(false);
+      return;
+    }
+    fetchDashboardData(adminDepartmentId);
+  }, [adminDepartmentId]);
 
   if (initialLoading) {
     return <LoadingScreen message="Preparing Admin Dashboard" />;

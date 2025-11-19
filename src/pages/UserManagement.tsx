@@ -43,6 +43,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { UserService } from "@/services/userService";
+import { useAuth } from "@/context/AuthContext";
 
 interface User {
   id: string;
@@ -60,6 +61,8 @@ interface Department {
 }
 
 const UserManagement = () => {
+  const { profile } = useAuth();
+  const adminDepartmentId = profile?.department_id || null;
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -82,14 +85,20 @@ const UserManagement = () => {
     password: "psu3du123",
   });
 
-  const fetchUsers = async (archived = false) => {
+  const fetchUsers = async (archived = false, departmentId?: string | null) => {
     try {
       setLoading(true);
+      if (!departmentId) {
+        setUsers([]);
+        setFilteredUsers([]);
+        return;
+      }
       
-      // Fetch all users and filter on the client side for now
+      // Fetch department-specific users
       const { data, error } = await supabase
         .from("profiles")
-        .select("*");
+        .select("*")
+        .eq("department_id", departmentId);
 
       if (error) throw error;
       
@@ -122,27 +131,36 @@ const UserManagement = () => {
   };
 
   useEffect(() => {
-    fetchUsers(showArchived);
+    if (!adminDepartmentId) {
+      setUsers([]);
+      setFilteredUsers([]);
+      setDepartments([]);
+      setLoading(false);
+      return;
+    }
+
+    fetchUsers(showArchived, adminDepartmentId);
     if (!showArchived) {
-      fetchDepartments();
+      fetchDepartments(adminDepartmentId);
     }
     // Clear search when switching between active and archived users
     setSearchQuery("");
-  }, [showArchived]);
+    setFormData((prev) => ({
+      ...prev,
+      department_id: adminDepartmentId,
+    }));
+  }, [showArchived, adminDepartmentId]);
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = async (departmentId: string) => {
     try {
-      const { data, error } = await supabase.from("departments").select("*");
+      const { data, error } = await supabase
+        .from("departments")
+        .select("*")
+        .eq("id", departmentId)
+        .maybeSingle();
       if (error) throw error;
       
-      // Sort departments to place "Information Technology" first
-      const sortedDepartments = [...(data || [])].sort((a, b) => {
-        if (a.name === "Information Technology") return -1;
-        if (b.name === "Information Technology") return 1;
-        return a.name.localeCompare(b.name);
-      });
-      
-      setDepartments(sortedDepartments);
+      setDepartments(data ? [data] : []);
     } catch (error: any) {
       console.error("Error fetching departments:", error);
     }
@@ -167,7 +185,7 @@ const UserManagement = () => {
       email: "",
       role: false,
       position: "INSTRUCTOR",
-      department_id: "",
+      department_id: adminDepartmentId || "",
       password: "psu3du123",
     });
   };
@@ -212,7 +230,7 @@ const UserManagement = () => {
       
       setIsAddDialogOpen(false);
       resetForm();
-      fetchUsers(showArchived);
+      fetchUsers(showArchived, adminDepartmentId);
     } catch (error: any) {
       console.error("Error creating user:", error);
       toast({
@@ -262,7 +280,7 @@ const UserManagement = () => {
       });
       
       setIsEditDialogOpen(false);
-      fetchUsers(showArchived);
+      fetchUsers(showArchived, adminDepartmentId);
     } catch (error: any) {
       console.error("Error updating user:", error);
       toast({
@@ -301,7 +319,7 @@ const UserManagement = () => {
       }
       
       setIsArchiveDialogOpen(false);
-      fetchUsers(showArchived);
+      fetchUsers(showArchived, adminDepartmentId);
     } catch (error: any) {
       console.error("Error archiving user:", error);
       toast({

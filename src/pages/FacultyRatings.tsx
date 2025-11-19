@@ -36,7 +36,8 @@ interface RatingStats {
 
 const FacultyRatings = () => {
   const { toast } = useToast();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, profile } = useAuth();
+  const adminDepartmentId = profile?.department_id || null;
   const [ratings, setRatings] = useState<FacultyRating[]>([]);
   const [stats, setStats] = useState<RatingStats | null>(null);
   const [adminStats, setAdminStats] = useState<RatingStats | null>(null);
@@ -48,11 +49,23 @@ const FacultyRatings = () => {
     if (user) {
       fetchRatings();
     }
-  }, [user, isAdmin]);
+  }, [user, isAdmin, adminDepartmentId]);
 
   const fetchRatings = async () => {
     try {
       setLoading(true);
+      
+      if (isAdmin && !adminDepartmentId) {
+        setRatings([]);
+        setDocMap({});
+        setAdminStats({
+          total_submissions: 0,
+          on_time_submissions: 0,
+          late_submissions: 0,
+          on_time_percentage: 0,
+        });
+        return;
+      }
 
       let instructorProfiles: { id: string; name: string; position?: string }[] = [];
 
@@ -61,7 +74,8 @@ const FacultyRatings = () => {
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles' as any)
           .select('id, name, position')
-          .eq('position', 'INSTRUCTOR');
+          .eq('position', 'INSTRUCTOR')
+          .eq('department_id', adminDepartmentId);
         if (profilesError) throw profilesError;
         instructorProfiles = (profiles as any) || [];
         // Build quick lookup
@@ -94,6 +108,17 @@ const FacultyRatings = () => {
 
       if (isAdmin) {
         const instructorIds = instructorProfiles.map(p => p.id);
+        if (instructorIds.length === 0) {
+          setRatings([]);
+          setDocMap({});
+          setAdminStats({
+            total_submissions: 0,
+            on_time_submissions: 0,
+            late_submissions: 0,
+            on_time_percentage: 0,
+          });
+          return;
+        }
         ratingsQuery = ratingsQuery.in('faculty_id', instructorIds);
       } else if (user) {
         ratingsQuery = ratingsQuery.eq('faculty_id', user.id);

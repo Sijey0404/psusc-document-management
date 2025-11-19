@@ -36,7 +36,8 @@ import { format } from "date-fns";
 const Documents = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, profile } = useAuth();
+  const adminDepartmentId = profile?.department_id || null;
   const [documents, setDocuments] = useState<Document[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,14 +126,28 @@ const Documents = () => {
 
   useEffect(() => {
     fetchDocuments();
-  }, []);
+  }, [isAdmin, user, adminDepartmentId]);
 
   const fetchDocuments = async () => {
     try {
       setLoading(true);
       
+      if (isAdmin && !adminDepartmentId) {
+        setDocuments([]);
+        setFilteredDocuments([]);
+        setDocumentUploaders([]);
+        setFilteredUploaders([]);
+        return;
+      }
+      
+      if (!isAdmin && !user) {
+        setDocuments([]);
+        setFilteredDocuments([]);
+        return;
+      }
+      
       // Fetch all documents with related data
-      const { data, error } = await supabase
+      let documentsQuery = supabase
         .from('documents')
         .select(`
           *,
@@ -142,6 +157,14 @@ const Documents = () => {
           category:document_categories!documents_category_id_fkey (name, semester, deadline)
         `)
         .order('created_at', { ascending: false });
+      
+      if (isAdmin && adminDepartmentId) {
+        documentsQuery = documentsQuery.eq('department_id', adminDepartmentId);
+      } else if (!isAdmin && user) {
+        documentsQuery = documentsQuery.eq('submitted_by', user.id);
+      }
+      
+      const { data, error } = await documentsQuery;
       
       if (error) throw error;
       
@@ -159,8 +182,12 @@ const Documents = () => {
         setDocuments(formattedDocuments);
         setFilteredDocuments(formattedDocuments);
         
-        // Also fetch document uploaders for user view
-        await fetchDocumentUploaders();
+        if (isAdmin && adminDepartmentId) {
+          await fetchDocumentUploaders(adminDepartmentId);
+        } else {
+          setDocumentUploaders([]);
+          setFilteredUploaders([]);
+        }
       }
     } catch (error: any) {
       console.error("Error fetching documents:", error);
@@ -174,9 +201,16 @@ const Documents = () => {
     }
   };
 
-  const fetchDocumentUploaders = async () => {
+  const fetchDocumentUploaders = async (departmentId: string) => {
     try {
       setLoadingUploaders(true);
+      
+      if (!departmentId) {
+        setDocumentUploaders([]);
+        setFilteredUploaders([]);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from("documents")
         .select(`
@@ -187,6 +221,7 @@ const Documents = () => {
             email
           )
         `)
+        .eq("department_id", departmentId)
         .order("created_at", { ascending: false });
         
       if (error) throw error;
@@ -225,7 +260,13 @@ const Documents = () => {
   const fetchUserFiles = async (userId: string) => {
     try {
       setLoadingUserFiles(true);
-      const { data, error } = await supabase
+      
+      if (isAdmin && !adminDepartmentId) {
+        setUserFiles([]);
+        return;
+      }
+      
+      let filesQuery = supabase
         .from("documents")
         .select(`
           id, title, status, created_at, file_type, file_path, feedback,
@@ -235,6 +276,12 @@ const Documents = () => {
         `)
         .eq("submitted_by", userId)
         .order("created_at", { ascending: false });
+      
+      if (isAdmin && adminDepartmentId) {
+        filesQuery = filesQuery.eq("department_id", adminDepartmentId);
+      }
+      
+      const { data, error } = await filesQuery;
         
       if (error) throw error;
       
