@@ -83,6 +83,7 @@ export type Database = {
           name: string
           semester: string | null
           department_id: string | null
+          parent_id: string | null
           updated_at: string
         }
         Insert: {
@@ -93,6 +94,7 @@ export type Database = {
           name: string
           semester?: string | null
           department_id?: string | null
+          parent_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -103,9 +105,18 @@ export type Database = {
           name?: string
           semester?: string | null
           department_id?: string | null
+          parent_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "document_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "document_categories"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       documents: {
         Row: {

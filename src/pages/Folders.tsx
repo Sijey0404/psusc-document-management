@@ -31,7 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye, FileText, Loader2, ExternalLink, Download, MessageSquare } from "lucide-react";
+import { Edit, Trash, Plus, Folder, AlertCircle, Filter, X, Eye, FileText, Loader2, ExternalLink, Download, MessageSquare, ChevronRight, Home, ChevronLeft } from "lucide-react";
 import { format } from "date-fns";
 import { 
   DropdownMenu,
@@ -49,6 +49,18 @@ type Folder = {
   created_at: string;
   updated_at: string;
   department_id?: string | null;
+  parent_id?: string | null;
+};
+
+type FolderDocument = {
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+  profiles?: {
+    name?: string | null;
+    email?: string | null;
+  } | null;
 };
 
 import { useAuth } from "@/context/AuthContext";
@@ -87,13 +99,19 @@ const Folders = () => {
   const [schoolYearFilter, setSchoolYearFilter] = useState<string>("");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewedFolder, setViewedFolder] = useState<Folder | null>(null);
+  const [folderPath, setFolderPath] = useState<Folder[]>([]);
+  const currentFolder = folderPath[folderPath.length - 1] || null;
+  const [folderDocuments, setFolderDocuments] = useState<FolderDocument[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const defaultFormState = {
     name: "",
     description: "",
     deadline: "",
     semester: "",
-  });
+    parent_id: null as string | null,
+  };
+  const [formData, setFormData] = useState(defaultFormState);
 
   const fetchFolders = async () => {
     try {
@@ -111,11 +129,19 @@ const Folders = () => {
         return;
       }
       
-      const { data, error } = await (supabase as any)
+      let query = (supabase as any)
         .from("document_categories")
-        .select("*, semester, department_id")
+        .select("*, semester, department_id, parent_id")
         .eq("department_id", adminDepartmentId)
         .order("name");
+      
+      if (currentFolder?.id) {
+        query = query.eq("parent_id", currentFolder.id);
+      } else {
+        query = query.is("parent_id", null);
+      }
+
+      const { data, error } = await query;
         
       if (error) throw error;
       
@@ -134,7 +160,11 @@ const Folders = () => {
 
   useEffect(() => {
     fetchFolders();
-  }, []);
+  }, [adminDepartmentId, currentFolder?.id]);
+
+  useEffect(() => {
+    setFolderPath([]);
+  }, [adminDepartmentId]);
   
   // Apply filters when semesterFilter or schoolYearFilter changes
   useEffect(() => {
@@ -164,6 +194,69 @@ const Folders = () => {
     setSchoolYearFilter("");
   };
 
+  const handleEnterFolder = (folder: Folder) => {
+    setFolderPath(prev => [...prev, folder]);
+  };
+
+  const handleNavigateToBreadcrumb = (index: number) => {
+    setFolderPath(folderPath.slice(0, index + 1));
+  };
+
+  const handleBackToParent = () => {
+    if (folderPath.length === 0) return;
+    setFolderPath(prev => prev.slice(0, -1));
+  };
+
+  const openCreateFolderDialog = () => {
+    setSelectedFolder(null);
+    setFormData({
+      ...defaultFormState,
+      parent_id: currentFolder?.id ?? null,
+    });
+    setFormOpen(true);
+  };
+
+  const fetchFolderDocuments = async (folderId: string) => {
+    if (!adminDepartmentId) return;
+    
+    try {
+      setDocumentsLoading(true);
+      const { data, error } = await (supabase as any)
+        .from("documents")
+        .select(`
+          id,
+          title,
+          status,
+          created_at,
+          profiles:submitted_by (name, email)
+        `)
+        .eq("department_id", adminDepartmentId)
+        .eq("category_id", folderId)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      
+      setFolderDocuments((data as FolderDocument[]) || []);
+    } catch (error: any) {
+      console.error("Error fetching folder documents:", error);
+      toast({
+        title: "Error fetching documents",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentFolder?.id) {
+      fetchFolderDocuments(currentFolder.id);
+    } else {
+      setFolderDocuments([]);
+    }
+  }, [currentFolder?.id, adminDepartmentId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -183,6 +276,7 @@ const Folders = () => {
         deadline: formData.deadline || null,
         semester: formData.semester || null,
         department_id: adminDepartmentId,
+        parent_id: formData.parent_id ?? null,
       };
       
       if (selectedFolder) {
@@ -231,7 +325,8 @@ const Folders = () => {
       name: folder.name,
       description: folder.description || "",
       deadline: folder.deadline ? new Date(folder.deadline).toISOString().slice(0, 16) : "",
-      semester: folder.semester || "", // Ensure it's "" if null for Select value
+      semester: folder.semester || "",
+      parent_id: folder.parent_id ?? null,
     });
     setFormOpen(true);
   };
@@ -288,10 +383,8 @@ const Folders = () => {
 
   const resetForm = () => {
     setFormData({
-      name: "",
-      description: "",
-      deadline: "",
-      semester: "", // Reset to empty string
+      ...defaultFormState,
+      parent_id: currentFolder?.id ?? null,
     });
     setSelectedFolder(null);
     setFormOpen(false);
@@ -802,7 +895,7 @@ const Folders = () => {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button onClick={() => setFormOpen(true)} className="flex items-center gap-2">
+            <Button onClick={openCreateFolderDialog} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Add New Folder
             </Button>
@@ -830,76 +923,176 @@ const Folders = () => {
           </div>
         )}
         
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Semester</TableHead>
-                <TableHead>Deadline</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    Loading folders...
-                  </TableCell>
-                </TableRow>
-              ) : filteredFolders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    {semesterFilter ? "No folders found for the selected semester." : "No folders found. Create one to get started."}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredFolders.map((folder) => (
-                  <TableRow key={folder.id}>
-                    <TableCell className="font-medium">{folder.name}</TableCell>
-                    <TableCell>{folder.description || "-"}</TableCell>
-                    <TableCell>{folder.semester || "-"}</TableCell>
-                    <TableCell>
-                      {folder.deadline 
-                        ? format(new Date(folder.deadline), "PPP p") 
-                        : "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleView(folder)}
-                          title="View folder"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleEdit(folder)}
-                          title="Edit folder"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => confirmDelete(folder)}
-                          title="Delete folder"
-                          className="text-destructive"
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+        <div className="space-y-4 rounded-md border bg-card/40 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => setFolderPath([])}
+              >
+                <Home className="h-4 w-4 mr-1" />
+                Root
+              </Button>
+              {folderPath.map((folder, index) => (
+                <div key={folder.id} className="flex items-center gap-2">
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => handleNavigateToBreadcrumb(index)}
+                  >
+                    {folder.name}
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={handleBackToParent}
+                disabled={!currentFolder}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Up
+              </Button>
+              <Button onClick={openCreateFolderDialog} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                New Folder
+              </Button>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {currentFolder ? `Viewing folders inside "${currentFolder.name}"` : "Viewing root-level folders"}
+          </div>
         </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {loading ? (
+            Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="border rounded-xl p-4 bg-muted/30 animate-pulse h-36" />
+            ))
+          ) : filteredFolders.length === 0 ? (
+            <div className="col-span-full border rounded-xl p-6 text-center text-muted-foreground bg-card/50">
+              {semesterFilter
+                ? "No folders found for the selected filters."
+                : "No folders found in this directory. Create one to get started."}
+            </div>
+          ) : (
+            filteredFolders.map((folder) => (
+              <div
+                key={folder.id}
+                className="border rounded-xl p-4 bg-card/70 hover:border-primary/60 transition group"
+                onDoubleClick={() => handleEnterFolder(folder)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      <Folder className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        className="font-semibold text-base hover:text-primary transition"
+                        onClick={() => handleEnterFolder(folder)}
+                      >
+                        {folder.name}
+                      </button>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {folder.description || "No description provided."}
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
+                        <span>{folder.semester || "No semester"}</span>
+                        <span>•</span>
+                        <span>
+                          {folder.deadline ? format(new Date(folder.deadline), "PPP p") : "No deadline"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => handleView(folder)} title="View statistics">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center justify-end gap-2 mt-4">
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(folder)}>
+                    <Edit className="h-4 w-4 mr-1" /> Edit
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-destructive" onClick={() => confirmDelete(folder)}>
+                    <Trash className="h-4 w-4 mr-1" /> Delete
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {currentFolder && (
+          <div className="rounded-md border bg-card/40 mt-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b">
+              <div>
+                <h3 className="font-semibold">Files in {currentFolder.name}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {documentsLoading ? "Loading files..." : `${folderDocuments.length} document${folderDocuments.length === 1 ? "" : "s"}`}
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => handleView(currentFolder)}>
+                <Eye className="h-4 w-4 mr-1" />
+                View statistics
+              </Button>
+            </div>
+            {documentsLoading ? (
+              <div className="py-8 text-center text-muted-foreground">Loading documents...</div>
+            ) : folderDocuments.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">No documents inside this folder yet.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Document</TableHead>
+                    <TableHead>Submitted By</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Uploaded</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {folderDocuments.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell className="font-medium flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        {doc.title}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-medium">{doc.profiles?.name || "Unknown"}</div>
+                        <div className="text-xs text-muted-foreground">{doc.profiles?.email}</div>
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            doc.status === "APPROVED"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300"
+                              : doc.status === "REJECTED"
+                                ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300"
+                                : "bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
+                          }`}
+                        >
+                          {doc.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {format(new Date(doc.created_at), "PPP p")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        )}
         
         {/* Folder Form Dialog */}
         <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -969,6 +1162,9 @@ const Folders = () => {
                 <p className="text-xs text-muted-foreground">
                   Optional deadline for this folder.
                 </p>
+                <div className="text-xs text-muted-foreground border rounded-md bg-muted/40 px-3 py-2 mt-2">
+                  Parent folder: {formData.parent_id ? (currentFolder?.name || "Parent folder") : "Root"}
+                </div>
               </div>
               
               <DialogFooter className="pt-4">
