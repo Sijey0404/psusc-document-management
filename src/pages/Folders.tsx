@@ -50,8 +50,12 @@ type Folder = {
   updated_at: string;
 };
 
+import { useAuth } from "@/context/AuthContext";
+
 const Folders = () => {
   const { toast } = useToast();
+  const { profile } = useAuth();
+  const adminDepartmentId = profile?.department_id || null;
   
   const [folders, setFolders] = useState<Folder[]>([]);
   const [filteredFolders, setFilteredFolders] = useState<Folder[]>([]);
@@ -329,6 +333,15 @@ const Folders = () => {
   };
 
   const handleView = async (folder: Folder) => {
+    if (!adminDepartmentId) {
+      toast({
+        title: "Department not set",
+        description: "Please contact the system administrator to assign your department before viewing submissions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setViewedFolder(folder);
     setViewDialogOpen(true);
     setShowInstructors(false);
@@ -342,13 +355,15 @@ const Folders = () => {
         .from("profiles")
         .select("*", { count: "exact", head: true })
         .eq("role", false)
-        .eq("archived", false);
+        .eq("archived", false)
+        .eq("department_id", adminDepartmentId);
       
       // Fetch submissions for this folder (including status for filtering)
       const { data: submissions, error } = await supabase
         .from("documents")
         .select("created_at, status")
-        .eq("category_id", folder.id);
+        .eq("category_id", folder.id)
+        .eq("department_id", adminDepartmentId);
         
       if (error) throw error;
       
@@ -358,7 +373,8 @@ const Folders = () => {
         const { data: submittersForCount, error: submittersErr } = await supabase
           .from("documents")
           .select("submitted_by")
-          .eq("category_id", folder.id);
+          .eq("category_id", folder.id)
+          .eq("department_id", adminDepartmentId);
         if (submittersErr) throw submittersErr;
 
         const submittedIds = Array.from(new Set((submittersForCount || []).map((d: any) => d.submitted_by).filter(Boolean)));
@@ -368,7 +384,8 @@ const Folders = () => {
             .select("*", { count: "exact", head: true })
             .in("id", submittedIds)
             .eq("role", false)
-            .eq("archived", true);
+            .eq("archived", true)
+            .eq("department_id", adminDepartmentId);
           if (archivedCountErr) throw archivedCountErr;
           archivedSubmittersCount = archivedCount || 0;
         }
@@ -412,13 +429,23 @@ const Folders = () => {
   };
 
   const fetchInstructorsForFolder = async (folderId: string) => {
+    if (!adminDepartmentId) {
+      toast({
+        title: "Department not set",
+        description: "Please contact the system administrator to assign your department before viewing instructors.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoadingInstructors(true);
       // Fetch submissions for this folder to see who submitted (build set first)
       const { data: docs, error: docsError } = await supabase
         .from("documents")
         .select("submitted_by")
-        .eq("category_id", folderId);
+        .eq("category_id", folderId)
+        .eq("department_id", adminDepartmentId);
       if (docsError) throw docsError;
 
       const submittedIds = (docs || []).map((d: any) => d.submitted_by).filter(Boolean);
@@ -429,7 +456,8 @@ const Folders = () => {
         .from("profiles")
         .select("id, name, email")
         .eq("role", false)
-        .eq("archived", false);
+        .eq("archived", false)
+        .eq("department_id", adminDepartmentId);
       if (facultyError) throw facultyError;
 
       // Build active instructors list with submitted flag
@@ -449,7 +477,8 @@ const Folders = () => {
           .select("id, name, email")
           .in("id", submittedIds)
           .eq("role", false)
-          .eq("archived", true);
+          .eq("archived", true)
+          .eq("department_id", adminDepartmentId);
         if (archivedError) throw archivedError;
 
         const archivedList = (archivedProfiles || []).map((p: any) => ({
@@ -475,6 +504,15 @@ const Folders = () => {
   };
 
   const fetchDocumentUploaders = async (folderId: string) => {
+    if (!adminDepartmentId) {
+      toast({
+        title: "Department not set",
+        description: "Please contact the system administrator to assign your department before viewing submissions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoadingUploaders(true);
       const { data, error } = await supabase
@@ -488,6 +526,7 @@ const Folders = () => {
           )
         `)
         .eq("category_id", folderId)
+        .eq("department_id", adminDepartmentId)
         .order("created_at", { ascending: false });
         
       if (error) throw error;
@@ -524,6 +563,15 @@ const Folders = () => {
   };
 
   const fetchUserFiles = async (userId: string, folderId: string) => {
+    if (!adminDepartmentId) {
+      toast({
+        title: "Department not set",
+        description: "Please contact the system administrator to assign your department before viewing submissions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoadingUserFiles(true);
       const { data, error } = await supabase
@@ -531,6 +579,7 @@ const Folders = () => {
         .select("title, status, created_at, file_type, file_path")
         .eq("category_id", folderId)
         .eq("submitted_by", userId)
+        .eq("department_id", adminDepartmentId)
         .order("created_at", { ascending: false });
         
       if (error) throw error;
