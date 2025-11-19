@@ -96,7 +96,7 @@ const Register = () => {
     if (existingProfile) {
       toast({
         title: "Email Already Registered",
-        description: "This email is already registered in the system",
+        description: "Email has already been registered, please use other email.",
         variant: "destructive",
       });
       setLoading(false);
