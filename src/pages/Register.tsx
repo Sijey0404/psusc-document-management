@@ -280,9 +280,10 @@ const Register = () => {
                     <SelectValue placeholder="Select position" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="INSTRUCTOR">Instructors</SelectItem>
-                    <SelectItem value="ASSOCIATE_PROFESSOR">Associate Professors</SelectItem>
-                    <SelectItem value="ASSISTANT_PROFESSOR">Assistant Professors</SelectItem>
+                    <SelectItem value="INSTRUCTOR">Instructor</SelectItem>
+                    <SelectItem value="ASSOCIATE_PROFESSOR">Associate Professor</SelectItem>
+                    <SelectItem value="ASSISTANT_PROFESSOR">Assistant Professor</SelectItem>
+                    <SelectItem value="EXCHANGE_FACULTY">Exchange faculty</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
