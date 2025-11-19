@@ -533,7 +533,6 @@ const Folders = () => {
 
       // Only count approved documents for Total Submissions
       const approvedSubmissions = submissions?.filter((doc: any) => doc.status === 'APPROVED') || [];
-      const totalApprovedSubmissions = approvedSubmissions.length;
       const uniqueApprovedUsers = new Set(approvedSubmissions.map((doc: any) => doc.submitted_by).filter(Boolean));
       let ontime = 0;
       let late = 0;
@@ -560,7 +559,7 @@ const Folders = () => {
       
       setFolderStats({
         totalInstructors: totalInstructorBase,
-        totalSubmissions: totalApprovedSubmissions,
+        totalSubmissions: uniqueSubmitterCount, // Count unique users who submitted, not total documents
         ontime,
         late,
         rate: Number(rate),
