@@ -74,9 +74,11 @@ export interface DocumentCategory {
   name: string;
   description: string | null;
   deadline: string | null;
-  semester: string | null; // Added semester field
+  semester: string | null;
   created_at: string;
   updated_at: string;
+  department_id?: string | null;
+  parent_id?: string | null;
 }
 
 export interface Folder {

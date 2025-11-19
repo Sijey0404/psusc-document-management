@@ -2,16 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { 
-  Table, 
-  TableHeader, 
-  TableBody, 
-  TableRow, 
-  TableHead, 
-  TableCell 
-} from "@/components/ui/table";
 import { format } from "date-fns";
-import { Eye, Upload, Filter, X } from "lucide-react";
+import { Eye, Upload, Filter, X, Folder, ChevronRight, ChevronLeft, Home, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -26,6 +18,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+type FolderDocument = {
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+  profiles?: {
+    name?: string | null;
+    email?: string | null;
+  } | null;
+};
 
 const FacultyFolders = () => {
   const { toast } = useToast();
@@ -45,14 +48,39 @@ const FacultyFolders = () => {
   const [documentTitle, setDocumentTitle] = useState("");
   const [documentDescription, setDocumentDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [folderPath, setFolderPath] = useState<DocumentCategory[]>([]);
+  const currentFolder = folderPath[folderPath.length - 1] || null;
+  const [folderDocuments, setFolderDocuments] = useState<FolderDocument[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
 
   const fetchFolders = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      if (!profile?.department_id) {
+        setFolders([]);
+        setFilteredFolders([]);
+        setLoading(false);
+        toast({
+          title: "Department not set",
+          description: "Please contact the administrator to assign your department.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      let query = (supabase as any)
         .from("document_categories")
-        .select("id, name, description, deadline, created_at, updated_at, semester") 
+        .select("id, name, description, deadline, created_at, updated_at, semester, parent_id")
+        .eq("department_id", profile.department_id)
         .order("name");
+
+      if (currentFolder?.id) {
+        query = query.eq("parent_id", currentFolder.id);
+      } else {
+        query = query.is("parent_id", null);
+      }
+
+      const { data, error } = await query;
         
       if (error) throw error;
       
@@ -78,7 +106,30 @@ const FacultyFolders = () => {
 
   useEffect(() => {
     fetchFolders();
-  }, [folderIdFromUrl]);
+  }, [profile?.department_id, currentFolder?.id]);
+
+  useEffect(() => {
+    setFolderPath([]);
+  }, [profile?.department_id]);
+
+  useEffect(() => {
+    const openFolderFromQuery = async () => {
+      if (!folderIdFromUrl || !profile?.department_id || folderPath.length > 0) return;
+      
+      const { data, error } = await (supabase as any)
+        .from("document_categories")
+        .select("id, name, description, deadline, created_at, updated_at, semester, parent_id")
+        .eq("department_id", profile.department_id)
+        .eq("id", folderIdFromUrl)
+        .maybeSingle();
+      
+      if (!error && data) {
+        setFolderPath([data as DocumentCategory]);
+      }
+    };
+    
+    openFolderFromQuery();
+  }, [folderIdFromUrl, profile?.department_id, folderPath.length]);
   
   useEffect(() => {
     let filtered = folders;
@@ -105,11 +156,25 @@ const FacultyFolders = () => {
     setSchoolYearFilter("");
   };
 
+  const handleEnterFolder = (folder: DocumentCategory) => {
+    setFolderPath((prev) => [...prev, folder]);
+  };
+
+  const handleNavigateToBreadcrumb = (index: number) => {
+    setFolderPath((prev) => prev.slice(0, index + 1));
+  };
+
+  const handleBackToParent = () => {
+    if (folderPath.length === 0) return;
+    setFolderPath((prev) => prev.slice(0, -1));
+  };
+
   const handleViewFolder = (folder: DocumentCategory) => {
     setSelectedFolder(folder);
     setIsDialogOpen(true);
     setDocumentDescription("");
     setSelectedFile(null);
+    setDocumentTitle("");
   };
 
   const handleCloseDialog = () => {
@@ -117,7 +182,48 @@ const FacultyFolders = () => {
     setSelectedFolder(null);
     setSelectedFile(null);
     setDocumentDescription("");
+    setDocumentTitle("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  const fetchFolderDocuments = async (folderId: string) => {
+    if (!profile?.department_id) return;
+    try {
+      setDocumentsLoading(true);
+      const { data, error } = await (supabase as any)
+        .from("documents")
+        .select(`
+          id,
+          title,
+          status,
+          created_at,
+          profiles:submitted_by (name, email)
+        `)
+        .eq("department_id", profile.department_id)
+        .eq("category_id", folderId)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      setFolderDocuments((data as FolderDocument[]) || []);
+    } catch (error: any) {
+      console.error("Error loading folder documents:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentFolder?.id) {
+      fetchFolderDocuments(currentFolder.id);
+    } else {
+      setFolderDocuments([]);
+    }
+  }, [currentFolder?.id, profile?.department_id]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files.length) {
@@ -165,6 +271,9 @@ const FacultyFolders = () => {
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       handleCloseDialog();
+      if (currentFolder?.id === selectedFolder.id) {
+        fetchFolderDocuments(currentFolder.id);
+      }
     } catch (error: any) {
       toast({
         title: "Upload failed",
@@ -260,59 +369,147 @@ const FacultyFolders = () => {
           </div>
         )}
         
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Semester</TableHead>
-                <TableHead>Deadline</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    Loading folders...
-                  </TableCell>
-                </TableRow>
-              ) : filteredFolders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    No folders found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredFolders.map((folder) => (
-                  <TableRow key={folder.id}>
-                    <TableCell className="font-medium">{folder.name}</TableCell>
-                    <TableCell>{folder.description || "-"}</TableCell>
-                    <TableCell>{folder.semester || "-"}</TableCell>
-                    <TableCell>
-                      {folder.deadline 
-                        ? format(new Date(folder.deadline), "PPP p") 
-                        : "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          title="View folder"
-                          onClick={() => handleViewFolder(folder)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+        <div className="space-y-4 rounded-md border bg-card/40 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => setFolderPath([])}
+              >
+                <Home className="h-4 w-4 mr-1" />
+                Root
+              </Button>
+              {folderPath.map((folder, index) => (
+                <div key={folder.id} className="flex items-center gap-2">
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => handleNavigateToBreadcrumb(index)}
+                  >
+                    {folder.name}
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1"
+              onClick={handleBackToParent}
+              disabled={!currentFolder}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Up
+            </Button>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {currentFolder ? `Viewing folders inside "${currentFolder.name}"` : "Viewing root-level folders"}
+          </div>
         </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {loading ? (
+            Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="border rounded-xl p-4 bg-muted/30 animate-pulse h-32" />
+            ))
+          ) : filteredFolders.length === 0 ? (
+            <div className="col-span-full border rounded-xl p-6 text-center text-muted-foreground bg-card/50">
+              No folders found in this directory.
+            </div>
+          ) : (
+            filteredFolders.map((folder) => (
+              <div
+                key={folder.id}
+                className="border rounded-xl p-4 bg-card/70 hover:border-primary/60 transition group cursor-pointer"
+                onDoubleClick={() => handleEnterFolder(folder)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      <Folder className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        className="font-semibold text-base hover:text-primary transition"
+                        onClick={() => handleEnterFolder(folder)}
+                      >
+                        {folder.name}
+                      </button>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {folder.description || "No description provided."}
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
+                        <span>{folder.semester || "No semester"}</span>
+                        <span>•</span>
+                        <span>
+                          {folder.deadline ? format(new Date(folder.deadline), "PPP p") : "No deadline"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => handleViewFolder(folder)}>
+                    <Upload className="h-4 w-4 mr-1" />
+                    Upload
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {currentFolder && (
+          <div className="rounded-md border bg-card/40 mt-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b">
+              <div>
+                <h3 className="font-semibold">Files in {currentFolder.name}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {documentsLoading ? "Loading files..." : `${folderDocuments.length} document${folderDocuments.length === 1 ? "" : "s"}`}
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => handleViewFolder(currentFolder)}>
+                <Upload className="h-4 w-4 mr-1" />
+                Upload here
+              </Button>
+            </div>
+            {documentsLoading ? (
+              <div className="py-8 text-center text-muted-foreground">Loading documents...</div>
+            ) : folderDocuments.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">No documents uploaded to this folder yet.</div>
+            ) : (
+              <div className="divide-y">
+                {folderDocuments.map((doc) => (
+                  <div key={doc.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium text-sm">{doc.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {doc.profiles?.name || "Unknown"} • {format(new Date(doc.created_at), "PPP p")}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        doc.status === "APPROVED"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300"
+                          : doc.status === "REJECTED"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300"
+                            : "bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
+                      }`}
+                    >
+                      {doc.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
