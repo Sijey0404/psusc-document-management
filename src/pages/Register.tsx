@@ -11,6 +11,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { PendingUserService } from "@/services/pendingUserService";
 import { useEffect } from "react";
 import { generateDepartmentCode } from "@/utils/departmentCode";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Register = () => {
   const [firstName, setFirstName] = useState("");
@@ -21,7 +29,8 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [position, setPosition] = useState("INSTRUCTOR");
   const [departmentId, setDepartmentId] = useState("");
-  const [departmentCodeInput, setDepartmentCodeInput] = useState("");
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
+  const [departmentCodeValue, setDepartmentCodeValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<any[]>([]);
   const { toast } = useToast();
@@ -84,17 +93,6 @@ const Register = () => {
       return;
     }
 
-    const expectedCode = generateDepartmentCode(departmentId);
-    if (!departmentCodeInput || departmentCodeInput.trim() !== expectedCode) {
-      toast({
-        title: "Invalid Department Code",
-        description: "The department code you entered is incorrect. Please contact your department admin.",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -138,7 +136,33 @@ const Register = () => {
       return;
     }
 
+    setLoading(false);
+    setDepartmentCodeValue("");
+    setIsCodeModalOpen(true);
+  };
+
+  const handleDepartmentCodeSubmit = async () => {
+    if (!departmentId) {
+      toast({
+        title: "Missing Department",
+        description: "Please select a department.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const expectedCode = generateDepartmentCode(departmentId);
+    if (!departmentCodeValue || departmentCodeValue.trim() !== expectedCode) {
+      toast({
+        title: "Invalid Department Code",
+        description: "The department code you entered is incorrect. Please contact your department admin.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      setLoading(true);
       await PendingUserService.createPendingUser({
         name: `${firstName.trim()} ${middleName.trim()} ${lastName.trim()}`.replace(/\s+/g, " "),
         email,
@@ -151,6 +175,9 @@ const Register = () => {
         description: "Your registration has been submitted for admin approval. You will be notified once approved.",
       });
       
+      setIsCodeModalOpen(false);
+      setDepartmentCodeValue("");
+
       // Clear form
       setFirstName("");
       setMiddleName("");
@@ -160,7 +187,6 @@ const Register = () => {
       setConfirmPassword("");
       setPosition("INSTRUCTOR");
       setDepartmentId(departments[0]?.id || "");
-      setDepartmentCodeInput("");
     } catch (error: any) {
       console.error("Registration error:", error);
       const isDuplicateEmailError = typeof error?.message === "string" && error.message.toLowerCase().includes("duplicate key value");
@@ -269,7 +295,7 @@ const Register = () => {
                   value={departmentId}
                   onValueChange={(value) => {
                     setDepartmentId(value);
-                    setDepartmentCodeInput("");
+                    setDepartmentCodeValue("");
                   }}
                 >
                   <SelectTrigger>
@@ -285,21 +311,6 @@ const Register = () => {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="departmentCode">Department Code</Label>
-                <Input
-                  id="departmentCode"
-                  type="text"
-                  placeholder="Enter 8-digit code from your department admin"
-                  value={departmentCodeInput}
-                  onChange={(e) => setDepartmentCodeInput(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Please request the 8-digit code from your department administrator before registering.
-                </p>
-              </div>
-              
               <div className="space-y-2">
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="text-sm text-blue-800">
@@ -324,6 +335,62 @@ const Register = () => {
           </form>
         </Card>
         
+        <Dialog
+          open={isCodeModalOpen}
+          onOpenChange={(open) => {
+            if (loading && !open) return;
+            setIsCodeModalOpen(open);
+            if (!open) {
+              setDepartmentCodeValue("");
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Enter Department Code</DialogTitle>
+              <DialogDescription>
+                Please enter the 8-digit department code provided by your department administrator to complete your registration.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="department-code-modal">Department Code</Label>
+              <Input
+                id="department-code-modal"
+                type="text"
+                value={departmentCodeValue}
+                onChange={(e) => setDepartmentCodeValue(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="12345678"
+                maxLength={8}
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                This helps ensure only members of your department can register.
+              </p>
+            </div>
+            <DialogFooter className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (loading) return;
+                  setIsCodeModalOpen(false);
+                  setDepartmentCodeValue("");
+                }}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleDepartmentCodeSubmit}
+                disabled={loading || departmentCodeValue.length !== 8}
+              >
+                {loading ? "Submitting..." : "Submit"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Pangasinan State University - San Carlos Campus
