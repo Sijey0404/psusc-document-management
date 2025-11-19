@@ -125,9 +125,11 @@ const Register = () => {
       setDepartmentId(departments[0]?.id || "");
     } catch (error: any) {
       console.error("Registration error:", error);
+      const isDuplicateEmailError = typeof error?.message === "string" && error.message.toLowerCase().includes("duplicate key value");
+
       toast({
         title: "Registration failed",
-        description: error.message || "An error occurred during registration",
+        description: isDuplicateEmailError ? "Duplicated email." : (error.message || "An error occurred during registration"),
         variant: "destructive",
       });
     } finally {
