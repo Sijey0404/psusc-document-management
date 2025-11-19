@@ -17,12 +17,19 @@ export const NotificationDropdown = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, profile } = useAuth();
   const { toast } = useToast();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
     if (!user || !isAdmin) return;
+
+    if (!profile?.department_id) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setIsLoading(false);
+      return;
+    }
     
     try {
       setIsLoading(true);
@@ -32,6 +39,7 @@ export const NotificationDropdown = () => {
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
+        .eq('department_id', profile.department_id)
         .order('created_at', { ascending: false })
         .limit(10);
       
@@ -47,6 +55,7 @@ export const NotificationDropdown = () => {
           submitted_by,
           profiles!documents_submitted_by_fkey (name)
         `)
+        .eq('department_id', profile.department_id)
         .order('created_at', { ascending: false })
         .limit(5);
       
@@ -124,7 +133,7 @@ export const NotificationDropdown = () => {
       supabase.removeChannel(documentsChannel);
       supabase.removeChannel(notificationsChannel);
     };
-  }, [user]);
+  }, [user, profile?.department_id]);
   
   const markAllAsRead = async () => {
     if (!user) return;
@@ -135,7 +144,8 @@ export const NotificationDropdown = () => {
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
-        .eq('read', false);
+        .eq('read', false)
+        .eq('department_id', profile?.department_id || null);
       
       if (error) throw error;
       
