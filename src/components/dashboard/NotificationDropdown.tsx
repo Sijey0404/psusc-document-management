@@ -17,6 +17,7 @@ export const NotificationDropdown = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [departmentUserIds, setDepartmentUserIds] = useState<string[]>([]);
   const { user, isAdmin, profile } = useAuth();
   const { toast } = useToast();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -34,12 +35,28 @@ export const NotificationDropdown = () => {
     try {
       setIsLoading(true);
       
+       const { data: departmentProfiles, error: departmentError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('department_id', profile.department_id);
+      
+      if (departmentError) throw departmentError;
+      
+      const allowedUserIds = (departmentProfiles || []).map((profileRow: any) => profileRow.id);
+      setDepartmentUserIds(allowedUserIds);
+      
+      if (allowedUserIds.length === 0) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setIsLoading(false);
+        return;
+      }
+      
       // Fetch notifications from the notifications table
       const { data: notifData, error: notifError } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('department_id', profile.department_id)
+        .in('user_id', allowedUserIds)
         .order('created_at', { ascending: false })
         .limit(10);
       
@@ -136,16 +153,15 @@ export const NotificationDropdown = () => {
   }, [user, profile?.department_id]);
   
   const markAllAsRead = async () => {
-    if (!user) return;
+    if (!user || departmentUserIds.length === 0) return;
     
     try {
       // Update all unread notifications for this user to read
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .eq('user_id', user.id)
+        .in('user_id', departmentUserIds)
         .eq('read', false)
-        .eq('department_id', profile?.department_id || null);
       
       if (error) throw error;
       
