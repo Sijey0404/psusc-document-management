@@ -501,7 +501,7 @@ const Folders = () => {
       // Fetch submissions for this folder (including status for filtering)
       const { data: submissions, error } = await supabase
         .from("documents")
-        .select("created_at, status")
+        .select("created_at, status, submitted_by")
         .eq("category_id", folder.id)
         .eq("department_id", adminDepartmentId);
         
