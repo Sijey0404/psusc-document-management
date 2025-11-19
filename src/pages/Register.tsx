@@ -12,7 +12,9 @@ import { PendingUserService } from "@/services/pendingUserService";
 import { useEffect } from "react";
 
 const Register = () => {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -60,6 +62,16 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
 
+    if (!firstName.trim() || !middleName.trim() || !lastName.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide your first, middle, and last name.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -105,7 +117,7 @@ const Register = () => {
 
     try {
       await PendingUserService.createPendingUser({
-        name,
+        name: `${firstName.trim()} ${middleName.trim()} ${lastName.trim()}`.replace(/\s+/g, " "),
         email,
         position,
         department_id: departmentId || departments[0]?.id
@@ -117,7 +129,9 @@ const Register = () => {
       });
       
       // Clear form
-      setName("");
+      setFirstName("");
+      setMiddleName("");
+      setLastName("");
       setEmail("");
       setPassword("");
       setConfirmPassword("");
@@ -158,16 +172,40 @@ const Register = () => {
           </CardHeader>
           <form onSubmit={handleRegister}>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Dr. Juan Dela Cruz"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder="Juan"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="middleName">Middle Name</Label>
+                  <Input
+                    id="middleName"
+                    type="text"
+                    placeholder="Santos"
+                    value={middleName}
+                    onChange={(e) => setMiddleName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Dela Cruz"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
               
               <div className="space-y-2">
