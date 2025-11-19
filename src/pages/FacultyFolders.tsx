@@ -444,16 +444,17 @@ const FacultyFolders = () => {
                 </div>
               ))}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1"
-              onClick={handleBackToParent}
-              disabled={!currentFolder}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Up
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={handleBackToParent}
+                disabled={!currentFolder}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Up
+              </Button>
               {currentFolder && (
                 <Button
                   variant="default"
@@ -465,9 +466,23 @@ const FacultyFolders = () => {
                   New Subfolder
                 </Button>
               )}
+            </div>
           </div>
-          <div className="text-xs text-muted-foreground">
-            {currentFolder ? `Viewing folders inside "${currentFolder.name}"` : "Viewing root-level folders"}
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-muted-foreground">
+              {currentFolder ? `Viewing folders inside "${currentFolder.name}"` : "Viewing root-level folders"}
+            </div>
+            {!currentFolder && (
+                <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1"
+                onClick={openCreateFolderDialog}
+                >
+                <Plus className="h-4 w-4" />
+                New Root Folder
+                </Button>
+              )}
           </div>
         </div>
 
