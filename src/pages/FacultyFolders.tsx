@@ -286,6 +286,22 @@ const FacultyFolders = () => {
       return;
     }
     const file = e.target.files[0];
+    
+    // Validate file type
+    const allowedExtensions = ['.doc', '.docx', '.pdf', '.txt', '.rtf', '.xls', '.xlsx', '.ppt', '.pptx'];
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    
+    if (!allowedExtensions.includes(fileExtension)) {
+      toast({
+        title: "Invalid File Type",
+        description: "Only Word (.doc, .docx), PDF (.pdf), Text (.txt), RTF (.rtf), Excel (.xls, .xlsx), and PowerPoint (.ppt, .pptx) files are allowed.",
+        variant: "destructive",
+      });
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    
     setSelectedFile(file);
     setDocumentTitle(file.name.replace(/\.[^/.]+$/, "")); // Automatically use file name as title (without extension)
   };
