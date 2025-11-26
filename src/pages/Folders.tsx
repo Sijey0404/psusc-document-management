@@ -1180,9 +1180,10 @@ const Folders = () => {
                   value={formData.deadline}
                       onChange={(e) => setFormData({ ...formData, deadline: normalizeDateTimeLocalValue(e.target.value) })}
                       step="60"
+                  min={new Date().toISOString().slice(0, 16)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Optional deadline for this folder.
+                  Optional deadline for this folder. Only future dates can be selected.
                 </p>
                   </div>
                 </>
