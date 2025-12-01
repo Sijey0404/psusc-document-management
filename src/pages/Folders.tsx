@@ -109,6 +109,13 @@ const Folders = () => {
   const currentFolder = folderPath[folderPath.length - 1] || null;
   const [folderDocuments, setFolderDocuments] = useState<FolderDocument[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [isGeneratingPortfolio, setIsGeneratingPortfolio] = useState(false);
+  const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
+  const [portfolioForm, setPortfolioForm] = useState({
+    facultyName: "",
+    semester: "",
+    academicYear: "",
+  });
   
   const defaultFormState = {
     name: "",
@@ -119,6 +126,21 @@ const Folders = () => {
   };
   const [formData, setFormData] = useState(defaultFormState);
   const isRootContext = !formData.parent_id;
+
+  const portfolioSubfolders = [
+    "Faculty Schedule and Individual Faculty Schedule",
+    "Class Schedule",
+    "Course Syllabi and Syllabi Checklist",
+    "Acknowledgement Receipt of Syllabi / Course Guide",
+    "Seat Plan",
+    "Attendance Sheet",
+    "Exam with TOS",
+    "Sample Marked Quizzes, Exams and other written works",
+    "Acknowledgement Receipt of Quizzes, Activities, and Exams",
+    "Class Record",
+    "Report of Rating",
+    "Sample Lecture Notes (Study Guide, Slide Deck/Ppt)",
+  ];
 
   const fetchFolders = async () => {
     try {
@@ -218,9 +240,97 @@ const Folders = () => {
     setSelectedFolder(null);
     setFormData({
       ...defaultFormState,
-    parent_id: currentFolder?.id ?? null,
+      parent_id: currentFolder?.id ?? null,
     });
     setFormOpen(true);
+  };
+
+  const openPortfolioDialog = () => {
+    setPortfolioForm({
+      facultyName: "",
+      semester: "",
+      academicYear: "",
+    });
+    setPortfolioDialogOpen(true);
+  };
+
+  const handleGeneratePortfolio = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!adminDepartmentId) {
+      toast({
+        title: "Department not set",
+        description: "Please contact the system administrator to assign your department before generating folders.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!portfolioForm.facultyName.trim() || !portfolioForm.semester || !portfolioForm.academicYear.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide faculty name, semester, and academic year.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsGeneratingPortfolio(true);
+
+      const facultyNameUpper = portfolioForm.facultyName.trim().toUpperCase();
+      const parentName = `FACULTY PORTFOLIO of ${facultyNameUpper} ${portfolioForm.semester}. A.Y. ${portfolioForm.academicYear.trim()}`;
+
+      const parentPayload = {
+        name: parentName,
+        description: `Auto-generated portfolio folders for ${portfolioForm.facultyName.trim()} (${portfolioForm.semester}, A.Y. ${portfolioForm.academicYear.trim()})`,
+        deadline: null,
+        semester: portfolioForm.semester,
+        department_id: adminDepartmentId,
+        parent_id: currentFolder?.id ?? null,
+      };
+
+      const { data: parentFolderData, error: parentError } = await (supabase as any)
+        .from("document_categories")
+        .insert([parentPayload])
+        .select()
+        .single();
+
+      if (parentError) throw parentError;
+
+      const parentId = parentFolderData.id as string;
+
+      const childPayloads = portfolioSubfolders.map((name) => ({
+        name,
+        description: null,
+        deadline: null,
+        semester: null,
+        department_id: adminDepartmentId,
+        parent_id: parentId,
+      }));
+
+      const { error: childrenError } = await (supabase as any)
+        .from("document_categories")
+        .insert(childPayloads);
+
+      if (childrenError) throw childrenError;
+
+      toast({
+        title: "Faculty portfolio generated",
+        description: `Created portfolio folder and ${portfolioSubfolders.length} subfolders for ${portfolioForm.facultyName.trim()}.`,
+      });
+
+      setPortfolioDialogOpen(false);
+      await fetchFolders();
+    } catch (error: any) {
+      toast({
+        title: "Error generating portfolio",
+        description: error.message || "An unexpected error occurred while generating folders.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPortfolio(false);
+    }
   };
 
   const fetchFolderDocuments = async (folderId: string) => {
@@ -938,7 +1048,7 @@ const Folders = () => {
         <div className="space-y-4 rounded-md border bg-card/40 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-                        <Button
+              <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 px-2"
@@ -962,8 +1072,8 @@ const Folders = () => {
               ))}
             </div>
             <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
+              <Button
+                variant="outline"
                 size="sm"
                 className="gap-1"
                 onClick={handleBackToParent}
@@ -972,11 +1082,20 @@ const Folders = () => {
                 <ChevronLeft className="h-4 w-4" />
                 Up
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={openPortfolioDialog}
+              >
+                <Folder className="h-4 w-4" />
+                Auto-generate Faculty Portfolio
+              </Button>
               <Button onClick={openCreateFolderDialog} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 New Folder
-                        </Button>
-                      </div>
+              </Button>
+            </div>
           </div>
           <div className="text-xs text-muted-foreground">
             {currentFolder ? `Viewing folders inside "${currentFolder.name}"` : "Viewing root-level folders"}
@@ -1201,6 +1320,97 @@ const Folders = () => {
                 </Button>
                 <Button type="submit">
                   {selectedFolder ? "Update Folder" : "Create Folder"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Auto-generate Faculty Portfolio Dialog */}
+        <Dialog open={portfolioDialogOpen} onOpenChange={setPortfolioDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Auto-generate Faculty Portfolio</DialogTitle>
+              <DialogDescription>
+                Create a faculty portfolio folder with the standard set of subfolders.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleGeneratePortfolio} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="facultyName">Faculty Name *</Label>
+                <Input
+                  id="facultyName"
+                  value={portfolioForm.facultyName}
+                  onChange={(e) =>
+                    setPortfolioForm((prev) => ({ ...prev, facultyName: e.target.value }))
+                  }
+                  placeholder="e.g., Napoleon Camus M. Hermoso"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="portfolioSemester">Semester *</Label>
+                <Select
+                  value={portfolioForm.semester}
+                  onValueChange={(value) =>
+                    setPortfolioForm((prev) => ({ ...prev, semester: value }))
+                  }
+                >
+                  <SelectTrigger id="portfolioSemester" className="w-full">
+                    <SelectValue placeholder="Select semester" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1st Sem.">1st Sem.</SelectItem>
+                    <SelectItem value="2nd Sem.">2nd Sem.</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="academicYear">Academic Year *</Label>
+                <Input
+                  id="academicYear"
+                  value={portfolioForm.academicYear}
+                  onChange={(e) =>
+                    setPortfolioForm((prev) => ({ ...prev, academicYear: e.target.value }))
+                  }
+                  placeholder="e.g., 2024–2025"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  This will appear in the folder name as &quot;A.Y. [Academic Year]&quot;.
+                </p>
+              </div>
+
+              <div className="text-xs text-muted-foreground border rounded-md bg-muted/40 px-3 py-2 mt-2">
+                The following subfolders will be created automatically:
+                <ul className="list-disc list-inside mt-1 space-y-0.5">
+                  {portfolioSubfolders.map((name) => (
+                    <li key={name}>{name}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <DialogFooter className="pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPortfolioDialogOpen(false)}
+                  disabled={isGeneratingPortfolio}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isGeneratingPortfolio}>
+                  {isGeneratingPortfolio ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    "Generate Portfolio"
+                  )}
                 </Button>
               </DialogFooter>
             </form>
