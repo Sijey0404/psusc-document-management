@@ -1329,7 +1329,7 @@ const Folders = () => {
 
         {/* Auto-generate Faculty Portfolio Dialog */}
         <Dialog open={portfolioDialogOpen} onOpenChange={setPortfolioDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-sm">
             <DialogHeader>
               <DialogTitle>Auto-generate Faculty Portfolio</DialogTitle>
               <DialogDescription>
