@@ -1337,9 +1337,9 @@ const Folders = () => {
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleGeneratePortfolio} className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="facultyName">Faculty Name *</Label>
+            <form onSubmit={handleGeneratePortfolio} className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="facultyName" className="text-sm">Faculty Name *</Label>
                 <Input
                   id="facultyName"
                   value={portfolioForm.facultyName}
@@ -1348,18 +1348,19 @@ const Folders = () => {
                   }
                   placeholder="e.g., Napoleon Camus M. Hermoso"
                   required
+                  className="h-9"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="portfolioSemester">Semester *</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="portfolioSemester" className="text-sm">Semester *</Label>
                 <Select
                   value={portfolioForm.semester}
                   onValueChange={(value) =>
                     setPortfolioForm((prev) => ({ ...prev, semester: value }))
                   }
                 >
-                  <SelectTrigger id="portfolioSemester" className="w-full">
+                  <SelectTrigger id="portfolioSemester" className="w-full h-9">
                     <SelectValue placeholder="Select semester" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1369,8 +1370,8 @@ const Folders = () => {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="academicYear">Academic Year *</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="academicYear" className="text-sm">Academic Year *</Label>
                 <Input
                   id="academicYear"
                   value={portfolioForm.academicYear}
@@ -1379,16 +1380,17 @@ const Folders = () => {
                   }
                   placeholder="e.g., 2024–2025"
                   required
+                  className="h-9"
                 />
                 <p className="text-xs text-muted-foreground">
                   This will appear in the folder name as &quot;A.Y. [Academic Year]&quot;.
                 </p>
               </div>
 
-              <div className="text-xs text-muted-foreground border rounded-md bg-muted/40 px-3 py-2 mt-2">
-                <p className="mb-2">The following subfolders will be created automatically:</p>
-                <ScrollArea className="h-32 w-full rounded">
-                  <ul className="list-disc list-inside space-y-0.5 pr-3">
+              <div className="text-xs text-muted-foreground border rounded-md bg-muted/40 px-2 py-1.5">
+                <p className="mb-1.5 font-medium">The following subfolders will be created automatically:</p>
+                <ScrollArea className="h-24 w-full rounded">
+                  <ul className="list-disc list-inside space-y-0.5 pr-2 text-xs">
                     {portfolioSubfolders.map((name) => (
                       <li key={name}>{name}</li>
                     ))}
@@ -1396,7 +1398,7 @@ const Folders = () => {
                 </ScrollArea>
               </div>
 
-              <DialogFooter className="pt-4">
+              <DialogFooter className="pt-2">
                 <Button
                   type="button"
                   variant="outline"
