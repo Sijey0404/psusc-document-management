@@ -1346,7 +1346,7 @@ const Folders = () => {
                   onChange={(e) =>
                     setPortfolioForm((prev) => ({ ...prev, facultyName: e.target.value }))
                   }
-                  placeholder="e.g., Napoleon Camus M. Hermoso"
+                  placeholder="Enter portfolio name"
                   required
                   className="h-9"
                 />
@@ -1378,7 +1378,7 @@ const Folders = () => {
                   onChange={(e) =>
                     setPortfolioForm((prev) => ({ ...prev, academicYear: e.target.value }))
                   }
-                  placeholder="e.g., 2024–2025"
+                  placeholder="Enter academic year"
                   required
                   className="h-9"
                 />
