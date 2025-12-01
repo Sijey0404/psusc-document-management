@@ -1339,7 +1339,7 @@ const Folders = () => {
 
             <form onSubmit={handleGeneratePortfolio} className="space-y-3 py-2">
               <div className="space-y-1.5">
-                <Label htmlFor="facultyName" className="text-sm">Faculty Name *</Label>
+                <Label htmlFor="facultyName" className="text-sm">Portfolio name *</Label>
                 <Input
                   id="facultyName"
                   value={portfolioForm.facultyName}
