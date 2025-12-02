@@ -1236,52 +1236,52 @@ const Folders = () => {
         
         {/* Folder Form Dialog */}
         <Dialog open={formOpen} onOpenChange={setFormOpen}>
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-[400px] max-h-[85vh] overflow-y-auto">
+            <DialogHeader className="space-y-1">
               <DialogTitle className="text-base">
                 {selectedFolder ? "Edit Folder" : "Create New Folder"}
               </DialogTitle>
-              <DialogDescription className="text-sm">
+              <DialogDescription className="text-xs">
                 {selectedFolder 
                   ? "Update the folder information below."
                   : "Fill out the form to create a new folder."}
               </DialogDescription>
             </DialogHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-2.5 py-1">
-              <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-sm">Folder Name *</Label>
+            <form onSubmit={handleSubmit} className="space-y-2 py-1">
+              <div className="space-y-1">
+                <Label htmlFor="name" className="text-xs">Folder Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Enter folder name"
                   required
-                  className="h-9"
+                  className="h-8 text-sm"
                 />
               </div>
               
-              <div className="space-y-1.5">
-                <Label htmlFor="description" className="text-sm">Description</Label>
+              <div className="space-y-1">
+                <Label htmlFor="description" className="text-xs">Description</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Enter folder description (optional)"
                   rows={1}
-                  className="text-sm min-h-[60px]"
+                  className="text-xs min-h-[50px] py-1.5"
                 />
               </div>
               
               {isRootContext && (
                 <>
-              <div className="space-y-1.5">
-                <Label htmlFor="semester" className="text-sm">Semester</Label>
+              <div className="space-y-1">
+                <Label htmlFor="semester" className="text-xs">Semester</Label>
                 <Select
                   value={formData.semester}
                   onValueChange={(value) => setFormData({ ...formData, semester: value })}
                 >
-                  <SelectTrigger id="semester" className="w-full h-9">
+                  <SelectTrigger id="semester" className="w-full h-8 text-sm">
                     <SelectValue placeholder="Select semester (optional)" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1289,13 +1289,13 @@ const Folders = () => {
                     <SelectItem value="2nd Semester">2nd Semester</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground leading-tight">
                   Optional: Select the semester for this folder.
                 </p>
               </div>
               
-              <div className="space-y-1.5">
-                <Label htmlFor="deadline" className="text-sm">Deadline</Label>
+              <div className="space-y-1">
+                <Label htmlFor="deadline" className="text-xs">Deadline</Label>
                 <Input
                   id="deadline"
                   type="datetime-local"
@@ -1303,26 +1303,26 @@ const Folders = () => {
                       onChange={(e) => setFormData({ ...formData, deadline: normalizeDateTimeLocalValue(e.target.value) })}
                       step="60"
                   min={new Date().toISOString().slice(0, 16)}
-                  className="h-9"
+                  className="h-8 text-sm"
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground leading-tight">
                   Optional deadline for this folder. Only future dates can be selected.
                 </p>
                   </div>
                 </>
               )}
               
-              <div className="text-xs text-muted-foreground border rounded-md bg-muted/40 px-2.5 py-1.5">
+              <div className="text-[10px] text-muted-foreground border rounded-md bg-muted/40 px-2 py-1 leading-tight">
                 {isRootContext
                   ? "Root folders require scheduling details for deadlines."
                   : `Parent folder: ${currentFolder?.name || "Parent"}`}
               </div>
               
-              <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" onClick={resetForm} className="h-9">
+              <DialogFooter className="pt-2 gap-2">
+                <Button type="button" variant="outline" onClick={resetForm} className="h-8 text-sm">
                   Cancel
                 </Button>
-                <Button type="submit" className="h-9">
+                <Button type="submit" className="h-8 text-sm">
                   {selectedFolder ? "Update Folder" : "Create Folder"}
                 </Button>
               </DialogFooter>
