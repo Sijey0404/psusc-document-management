@@ -15,6 +15,9 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { motion } from "framer-motion";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { useAuth } from "@/context/AuthContext";
+import { DocumentListModal } from "@/components/dashboard/DocumentListModal";
+import { UserListModal } from "@/components/dashboard/UserListModal";
+import { SubmissionListModal } from "@/components/dashboard/SubmissionListModal";
 
 const AdminDashboard = () => {
   const { profile } = useAuth();
@@ -37,6 +40,21 @@ const AdminDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
+  
+  // Modal states
+  const [modalState, setModalState] = useState<{
+    type: 'documents' | 'users' | 'submissions' | null;
+    title: string;
+    filter?: string;
+  }>({ type: null, title: '' });
+  
+  const [modalData, setModalData] = useState<{
+    documents: any[];
+    users: any[];
+    submissions: any[];
+  }>({ documents: [], users: [], submissions: [] });
+  
+  const [modalLoading, setModalLoading] = useState(false);
 
   const fetchDashboardData = async (departmentId: string) => {
     setLoading(true);
@@ -230,6 +248,122 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchModalData = async (type: 'documents' | 'users' | 'submissions', filter?: string) => {
+    if (!adminDepartmentId) return;
+    
+    setModalLoading(true);
+    try {
+      if (type === 'documents') {
+        let query = supabase
+          .from('documents')
+          .select('id, title, status, created_at, profiles:submitted_by(name, email)')
+          .eq('department_id', adminDepartmentId);
+        
+        if (filter && filter !== 'all') {
+          query = query.eq('status', filter.toUpperCase());
+        }
+        
+        const { data, error } = await query.order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setModalData(prev => ({ ...prev, documents: data || [] }));
+      } else if (type === 'users') {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, name, email, position')
+          .eq('role', false)
+          .eq('department_id', adminDepartmentId);
+        
+        if (error) throw error;
+        setModalData(prev => ({ ...prev, users: data || [] }));
+      } else if (type === 'submissions') {
+        const { data: instructorProfiles, error: profilesError } = await supabase
+          .from('profiles' as any)
+          .select('id, name')
+          .eq('position', 'INSTRUCTOR')
+          .eq('department_id', adminDepartmentId);
+        
+        if (profilesError) throw profilesError;
+        
+        const instructorIds = instructorProfiles?.map((p: any) => p.id) || [];
+        
+        const { data: ratingsData, error: ratingsError } = await supabase
+          .from('faculty_ratings' as any)
+          .select('*');
+        
+        if (ratingsError) throw ratingsError;
+        
+        const ratings = (ratingsData || []).filter((r: any) => instructorIds.includes(r.faculty_id));
+        
+        // Get document categories for deadlines
+        const docIds = Array.from(new Set(ratings.map((r: any) => r.document_id))).filter(Boolean);
+        let dMap: Record<string, string> = {};
+        
+        if (docIds.length > 0) {
+          const { data: docs } = await supabase
+            .from('documents' as any)
+            .select('id, category_id, document_categories(deadline)')
+            .in('id', docIds);
+          
+          if (docs) {
+            (docs as any[]).forEach(d => {
+              if (d.document_categories?.deadline) {
+                dMap[d.id] = d.document_categories.deadline;
+              }
+            });
+          }
+        }
+        
+        const submissionsWithTimeliness = ratings.map((rating: any) => {
+          const instructor = (instructorProfiles as any[])?.find((p: any) => p.id === rating.faculty_id);
+          const deadline = dMap[rating.document_id];
+          let isOnTime = rating.is_on_time;
+          
+          if (deadline) {
+            const submittedDate = new Date(rating.submitted_at);
+            const deadlineDate = new Date(deadline);
+            isOnTime = submittedDate <= deadlineDate;
+          }
+          
+          return {
+            id: rating.id,
+            document_id: rating.document_id,
+            faculty_name: instructor?.name || 'Unknown',
+            submitted_at: rating.submitted_at,
+            is_on_time: isOnTime,
+          };
+        });
+        
+        let filteredSubmissions = submissionsWithTimeliness;
+        if (filter === 'ontime') {
+          filteredSubmissions = submissionsWithTimeliness.filter(s => s.is_on_time);
+        } else if (filter === 'late') {
+          filteredSubmissions = submissionsWithTimeliness.filter(s => !s.is_on_time);
+        }
+        
+        setModalData(prev => ({ ...prev, submissions: filteredSubmissions }));
+      }
+    } catch (error: any) {
+      console.error('Error fetching modal data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch data",
+        variant: "destructive",
+      });
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleCardClick = async (type: 'documents' | 'users' | 'submissions', title: string, filter?: string) => {
+    setModalState({ type, title, filter });
+    await fetchModalData(type, filter);
+  };
+
+  const closeModal = () => {
+    setModalState({ type: null, title: '' });
+  };
+
   useEffect(() => {
     if (!adminDepartmentId) {
       setSummaryStats({
@@ -278,7 +412,10 @@ const AdminDashboard = () => {
         >
           <h2 className="text-lg font-semibold mb-3">Submission Ratings</h2>
           <div className="grid gap-4 md:grid-cols-4">
-            <Card>
+            <Card 
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleCardClick('submissions', 'All Submissions', 'all')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
                 <Award className="h-4 w-4 text-muted-foreground" />
@@ -287,7 +424,10 @@ const AdminDashboard = () => {
                 <div className="text-2xl font-bold">{submissionStats.total_submissions}</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card 
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleCardClick('submissions', 'On Time Submissions', 'ontime')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">On Time</CardTitle>
                 <CheckCircle className="h-4 w-4 text-green-600" />
@@ -296,7 +436,10 @@ const AdminDashboard = () => {
                 <div className="text-2xl font-bold text-green-600">{submissionStats.on_time_submissions}</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card 
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleCardClick('submissions', 'Late Submissions', 'late')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Late</CardTitle>
                 <Clock className="h-4 w-4 text-red-600" />
@@ -305,7 +448,7 @@ const AdminDashboard = () => {
                 <div className="text-2xl font-bold text-red-600">{submissionStats.late_submissions}</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">On Time Rate</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -324,7 +467,10 @@ const AdminDashboard = () => {
           transition={{ duration: 0.4 }}
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Card className="overflow-hidden shadow-sm bg-amber-50 dark:bg-amber-900/30 border-amber-100 dark:border-amber-800">
+            <Card 
+              className="overflow-hidden shadow-sm bg-amber-50 dark:bg-amber-900/30 border-amber-100 dark:border-amber-800 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleCardClick('documents', 'Pending Documents', 'pending')}
+            >
               <CardContent className="p-0">
                 <div className="flex items-stretch h-full">
                   <div className="bg-amber-100 dark:bg-amber-800/50 p-3 flex items-center justify-center">
@@ -349,7 +495,10 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
             
-            <Card className="overflow-hidden shadow-sm bg-green-50 dark:bg-green-900/30 border-green-100 dark:border-green-800">
+            <Card 
+              className="overflow-hidden shadow-sm bg-green-50 dark:bg-green-900/30 border-green-100 dark:border-green-800 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleCardClick('documents', 'Approved Documents', 'approved')}
+            >
               <CardContent className="p-0">
                 <div className="flex items-stretch h-full">
                   <div className="bg-green-100 dark:bg-green-800/50 p-3 flex items-center justify-center">
@@ -374,7 +523,10 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
             
-            <Card className="overflow-hidden shadow-sm bg-red-50 dark:bg-red-900/30 border-red-100 dark:border-red-800">
+            <Card 
+              className="overflow-hidden shadow-sm bg-red-50 dark:bg-red-900/30 border-red-100 dark:border-red-800 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleCardClick('documents', 'Rejected Documents', 'rejected')}
+            >
               <CardContent className="p-0">
                 <div className="flex items-stretch h-full">
                   <div className="bg-red-100 dark:bg-red-800/50 p-3 flex items-center justify-center">
@@ -399,7 +551,10 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
             
-            <Card className="overflow-hidden shadow-sm bg-blue-50 dark:bg-blue-900/30 border-blue-100 dark:border-blue-800">
+            <Card 
+              className="overflow-hidden shadow-sm bg-blue-50 dark:bg-blue-900/30 border-blue-100 dark:border-blue-800 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleCardClick('users', 'Faculty Users')}
+            >
               <CardContent className="p-0">
                 <div className="flex items-stretch h-full">
                   <div className="bg-blue-100 dark:bg-blue-800/50 p-3 flex items-center justify-center">
@@ -559,6 +714,31 @@ const AdminDashboard = () => {
           </Card>
         </motion.div>
       </div>
+      
+      {/* Modals */}
+      <DocumentListModal
+        isOpen={modalState.type === 'documents'}
+        onClose={closeModal}
+        title={modalState.title}
+        documents={modalData.documents}
+        loading={modalLoading}
+      />
+      
+      <UserListModal
+        isOpen={modalState.type === 'users'}
+        onClose={closeModal}
+        title={modalState.title}
+        users={modalData.users}
+        loading={modalLoading}
+      />
+      
+      <SubmissionListModal
+        isOpen={modalState.type === 'submissions'}
+        onClose={closeModal}
+        title={modalState.title}
+        submissions={modalData.submissions}
+        loading={modalLoading}
+      />
     </AppLayout>
   );
 };
