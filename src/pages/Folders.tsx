@@ -1236,50 +1236,52 @@ const Folders = () => {
         
         {/* Folder Form Dialog */}
         <Dialog open={formOpen} onOpenChange={setFormOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-sm">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-base">
                 {selectedFolder ? "Edit Folder" : "Create New Folder"}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-sm">
                 {selectedFolder 
                   ? "Update the folder information below."
                   : "Fill out the form to create a new folder."}
               </DialogDescription>
             </DialogHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Folder Name *</Label>
+            <form onSubmit={handleSubmit} className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-sm">Folder Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Enter folder name"
                   required
+                  className="h-9"
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="description" className="text-sm">Description</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Enter folder description (optional)"
-                  rows={3}
+                  rows={2}
+                  className="text-sm"
                 />
               </div>
               
               {isRootContext && (
                 <>
-              <div className="space-y-2">
-                <Label htmlFor="semester">Semester</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="semester" className="text-sm">Semester</Label>
                 <Select
                   value={formData.semester}
                   onValueChange={(value) => setFormData({ ...formData, semester: value })}
                 >
-                  <SelectTrigger id="semester" className="w-full">
+                  <SelectTrigger id="semester" className="w-full h-9">
                     <SelectValue placeholder="Select semester (optional)" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1292,8 +1294,8 @@ const Folders = () => {
                 </p>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="deadline">Deadline</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="deadline" className="text-sm">Deadline</Label>
                 <Input
                   id="deadline"
                   type="datetime-local"
@@ -1301,6 +1303,7 @@ const Folders = () => {
                       onChange={(e) => setFormData({ ...formData, deadline: normalizeDateTimeLocalValue(e.target.value) })}
                       step="60"
                   min={new Date().toISOString().slice(0, 16)}
+                  className="h-9"
                 />
                 <p className="text-xs text-muted-foreground">
                   Optional deadline for this folder. Only future dates can be selected.
@@ -1309,17 +1312,17 @@ const Folders = () => {
                 </>
               )}
               
-              <div className="text-xs text-muted-foreground border rounded-md bg-muted/40 px-3 py-2 mt-2">
+              <div className="text-xs text-muted-foreground border rounded-md bg-muted/40 px-2.5 py-1.5">
                 {isRootContext
                   ? "Root folders require scheduling details for deadlines."
                   : `Parent folder: ${currentFolder?.name || "Parent"}`}
               </div>
               
-              <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={resetForm}>
+              <DialogFooter className="pt-2">
+                <Button type="button" variant="outline" onClick={resetForm} className="h-9">
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" className="h-9">
                   {selectedFolder ? "Update Folder" : "Create Folder"}
                 </Button>
               </DialogFooter>
