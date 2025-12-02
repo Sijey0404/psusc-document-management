@@ -1248,7 +1248,7 @@ const Folders = () => {
               </DialogDescription>
             </DialogHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-3 py-2">
+            <form onSubmit={handleSubmit} className="space-y-2.5 py-1">
               <div className="space-y-1.5">
                 <Label htmlFor="name" className="text-sm">Folder Name *</Label>
                 <Input
@@ -1268,8 +1268,8 @@ const Folders = () => {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Enter folder description (optional)"
-                  rows={2}
-                  className="text-sm"
+                  rows={1}
+                  className="text-sm min-h-[60px]"
                 />
               </div>
               
