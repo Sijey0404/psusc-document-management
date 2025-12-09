@@ -291,34 +291,67 @@ const Folders = () => {
         parent_id: currentFolder?.id ?? null,
       };
 
-      const { data: parentFolderData, error: parentError } = await (supabase as any)
+      // Check if parent folder already exists
+      const { data: existingParent } = await (supabase as any)
         .from("document_categories")
-        .insert([parentPayload])
-        .select()
-        .single();
+        .select("id")
+        .eq("name", parentName)
+        .eq("department_id", adminDepartmentId)
+        .eq("parent_id", currentFolder?.id ?? null)
+        .maybeSingle();
 
-      if (parentError) throw parentError;
+      let parentId: string;
 
-      const parentId = parentFolderData.id as string;
+      if (existingParent) {
+        // Use existing parent folder
+        parentId = existingParent.id;
+      } else {
+        // Create new parent folder
+        const { data: parentFolderData, error: parentError } = await (supabase as any)
+          .from("document_categories")
+          .insert([parentPayload])
+          .select()
+          .single();
 
-      const childPayloads = portfolioSubfolders.map((name) => ({
-        name,
-        description: null,
-        deadline: null,
-        semester: null,
-        department_id: adminDepartmentId,
-        parent_id: parentId,
-      }));
+        if (parentError) throw parentError;
+        parentId = parentFolderData.id as string;
+      }
 
-      const { error: childrenError } = await (supabase as any)
-        .from("document_categories")
-        .insert(childPayloads);
+      // For each subfolder, check if it exists and only insert if it doesn't
+      let createdCount = 0;
+      for (const name of portfolioSubfolders) {
+        const { data: existingChild } = await (supabase as any)
+          .from("document_categories")
+          .select("id")
+          .eq("name", name)
+          .eq("department_id", adminDepartmentId)
+          .eq("parent_id", parentId)
+          .maybeSingle();
 
-      if (childrenError) throw childrenError;
+        if (!existingChild) {
+          const { error: childError } = await (supabase as any)
+            .from("document_categories")
+            .insert([{
+              name,
+              description: null,
+              deadline: null,
+              semester: null,
+              department_id: adminDepartmentId,
+              parent_id: parentId,
+            }]);
+
+          if (childError) throw childError;
+          createdCount++;
+        }
+      }
+
+      const message = createdCount > 0
+        ? `Created ${createdCount} new subfolder(s) for ${portfolioForm.facultyName.trim()}.`
+        : `Portfolio already exists for ${portfolioForm.facultyName.trim()}. No new folders created.`;
 
       toast({
-        title: "Faculty portfolio generated",
-        description: `Created portfolio folder and ${portfolioSubfolders.length} subfolders for ${portfolioForm.facultyName.trim()}.`,
+        title: "Faculty portfolio processed",
+        description: message,
       });
 
       setPortfolioDialogOpen(false);
