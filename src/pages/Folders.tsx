@@ -306,51 +306,75 @@ const Folders = () => {
         // Use existing parent folder
         parentId = existingParent.id;
       } else {
-        // Create new parent folder
+        // Create new parent folder - handle duplicate gracefully
         const { data: parentFolderData, error: parentError } = await (supabase as any)
           .from("document_categories")
           .insert([parentPayload])
           .select()
           .single();
 
-        if (parentError) throw parentError;
-        parentId = parentFolderData.id as string;
+        if (parentError) {
+          // If duplicate key error, fetch existing folder
+          if (parentError.code === '23505' || parentError.message?.includes('duplicate key')) {
+            const { data: refetchedParent } = await (supabase as any)
+              .from("document_categories")
+              .select("id")
+              .eq("name", parentName)
+              .eq("department_id", adminDepartmentId)
+              .eq("parent_id", currentFolder?.id ?? null)
+              .maybeSingle();
+            
+            if (refetchedParent) {
+              parentId = refetchedParent.id;
+            } else {
+              throw parentError;
+            }
+          } else {
+            throw parentError;
+          }
+        } else {
+          parentId = parentFolderData.id as string;
+        }
       }
 
-      // For each subfolder, check if it exists and only insert if it doesn't
+      // For each subfolder, try to insert and ignore duplicate errors
       let createdCount = 0;
+      let skippedCount = 0;
       for (const name of portfolioSubfolders) {
-        const { data: existingChild } = await (supabase as any)
+        const { error: childError } = await (supabase as any)
           .from("document_categories")
-          .select("id")
-          .eq("name", name)
-          .eq("department_id", adminDepartmentId)
-          .eq("parent_id", parentId)
-          .maybeSingle();
+          .insert([{
+            name,
+            description: null,
+            deadline: null,
+            semester: null,
+            department_id: adminDepartmentId,
+            parent_id: parentId,
+          }]);
 
-        if (!existingChild) {
-          const { error: childError } = await (supabase as any)
-            .from("document_categories")
-            .insert([{
-              name,
-              description: null,
-              deadline: null,
-              semester: null,
-              department_id: adminDepartmentId,
-              parent_id: parentId,
-            }]);
-
-          if (childError) throw childError;
+        if (childError) {
+          // Ignore duplicate key errors, count as skipped
+          if (childError.code === '23505' || childError.message?.includes('duplicate key')) {
+            skippedCount++;
+          } else {
+            throw childError;
+          }
+        } else {
           createdCount++;
         }
       }
 
-      const message = createdCount > 0
-        ? `Created ${createdCount} new subfolder(s) for ${portfolioForm.facultyName.trim()}.`
-        : `Portfolio already exists for ${portfolioForm.facultyName.trim()}. No new folders created.`;
+      let message: string;
+      if (createdCount > 0 && skippedCount > 0) {
+        message = `Created ${createdCount} new subfolder(s). ${skippedCount} already existed.`;
+      } else if (createdCount > 0) {
+        message = `Created portfolio with ${createdCount} subfolder(s) for ${portfolioForm.facultyName.trim()}.`;
+      } else {
+        message = `Portfolio already exists for ${portfolioForm.facultyName.trim()}. All folders are up to date.`;
+      }
 
       toast({
-        title: "Faculty portfolio processed",
+        title: "Portfolio generated successfully",
         description: message,
       });
 
