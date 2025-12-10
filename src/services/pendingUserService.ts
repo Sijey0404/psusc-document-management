@@ -9,6 +9,7 @@ export const PendingUserService = {
     email: string;
     position: string;
     department_id: string;
+    employee_id: string;
   }) {
     // Generate a default password
     const defaultPassword = `PSU${Math.random().toString(36).substring(2, 8).toUpperCase()}!`;
@@ -18,6 +19,7 @@ export const PendingUserService = {
       email: userData.email,
       position: userData.position,
       department_id: userData.department_id,
+      employee_id: userData.employee_id,
       default_password: defaultPassword,
       status: 'PENDING' as const,
     };

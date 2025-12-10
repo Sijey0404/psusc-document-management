@@ -24,6 +24,7 @@ const Register = () => {
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -77,6 +78,16 @@ const Register = () => {
       toast({
         title: "Missing Information",
         description: "Please provide your first, middle, and last name.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    if (!employeeId.trim() || employeeId.trim().length !== 8) {
+      toast({
+        title: "Invalid Employee ID",
+        description: "Employee ID must be exactly 8 characters.",
         variant: "destructive",
       });
       setLoading(false);
@@ -167,7 +178,8 @@ const Register = () => {
         name: `${firstName.trim()} ${middleName.trim()} ${lastName.trim()}`.replace(/\s+/g, " "),
         email,
         position,
-        department_id: departmentId || departments[0]?.id
+        department_id: departmentId || departments[0]?.id,
+        employee_id: employeeId.trim()
       });
       
       toast({
@@ -182,6 +194,7 @@ const Register = () => {
       setFirstName("");
       setMiddleName("");
       setLastName("");
+      setEmployeeId("");
       setEmail("");
       setPassword("");
       setConfirmPassword("");
@@ -262,6 +275,21 @@ const Register = () => {
                     className="h-8 text-sm"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="employeeId" className="text-xs">Employee ID</Label>
+                <Input
+                  id="employeeId"
+                  type="text"
+                  placeholder="12345678"
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value.slice(0, 8))}
+                  required
+                  maxLength={8}
+                  className="h-8 text-sm"
+                />
+                <p className="text-xs text-muted-foreground">Must be exactly 8 characters</p>
               </div>
               
               <div className="space-y-1.5">
