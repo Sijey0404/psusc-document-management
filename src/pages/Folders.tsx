@@ -511,7 +511,8 @@ const Folders = () => {
         name: formData.name,
         description: formData.description || null,
         deadline: deadlineIso,
-        semester: formData.parent_id ? null : (formData.semester || null),
+        // Subfolders inherit the parent's semester; root folders use the selected semester.
+        semester: formData.parent_id ? currentFolder?.semester || null : (formData.semester || null),
         department_id: adminDepartmentId,
         parent_id: formData.parent_id ?? null,
       };
