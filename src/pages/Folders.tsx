@@ -372,7 +372,7 @@ const Folders = () => {
             name,
             description: null,
             deadline: deadline,
-            semester: null,
+            semester: portfolioForm.semester || null,
             department_id: adminDepartmentId,
             parent_id: parentId,
           }]);
