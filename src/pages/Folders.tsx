@@ -479,10 +479,34 @@ const Folders = () => {
         return;
       }
 
+      let deadlineIso: string | null = null;
+      if (formData.parent_id) {
+        if (!formData.deadline) {
+          toast({
+            title: "Deadline required",
+            description: "Please set a deadline for subfolders before creating them.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const parsedDeadline = new Date(formData.deadline);
+        if (Number.isNaN(parsedDeadline.getTime())) {
+          toast({
+            title: "Invalid deadline",
+            description: "Please enter a valid date and time for the deadline.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        deadlineIso = parsedDeadline.toISOString();
+      }
+
       const payload = {
         name: formData.name,
         description: formData.description || null,
-        deadline: formData.parent_id ? null : (formData.deadline || null),
+        deadline: deadlineIso,
         semester: formData.parent_id ? null : (formData.semester || null),
         department_id: adminDepartmentId,
         parent_id: formData.parent_id ?? null,
@@ -1387,6 +1411,30 @@ const Folders = () => {
                 </p>
               </div>
                 </>
+              )}
+
+              {!isRootContext && (
+                <div className="space-y-1">
+                  <Label htmlFor="deadline" className="text-xs">Deadline *</Label>
+                  <Input
+                    id="deadline"
+                    type="datetime-local"
+                    value={formData.deadline}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        deadline: normalizeDateTimeLocalValue(e.target.value),
+                      })
+                    }
+                    step="60"
+                    min={new Date().toISOString().slice(0, 16)}
+                    className="h-8 text-sm"
+                    required
+                  />
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    Subfolders require a deadline. Only future dates can be selected.
+                  </p>
+                </div>
               )}
               
               <div className="text-[10px] text-muted-foreground border rounded-md bg-muted/40 px-2 py-1 leading-tight">
