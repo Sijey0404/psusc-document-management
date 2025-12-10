@@ -32,7 +32,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, FileText, Trash2, Download, Search, HardDrive, Folder, FolderPlus, ChevronRight, Home } from "lucide-react";
+import { Upload, FileText, Trash2, Download, Search, HardDrive, Folder, FolderPlus, ChevronRight, Home, Eye } from "lucide-react";
+import { AdminFileViewer } from "@/components/document/AdminFileViewer";
 
 interface AdminFile {
   id: string;
@@ -57,6 +58,7 @@ const AdminFileStorage = () => {
   const [folders, setFolders] = useState<string[]>([]);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [fileToView, setFileToView] = useState<AdminFile | null>(null);
 
   useEffect(() => {
     if (user && isAdmin) {
@@ -467,7 +469,16 @@ const AdminFileStorage = () => {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => setFileToView(file)}
+                            title="View file"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleDownload(file)}
+                            title="Download file"
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -475,6 +486,7 @@ const AdminFileStorage = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => setFileToDelete(file)}
+                            title="Delete file"
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -534,6 +546,22 @@ const AdminFileStorage = () => {
               Create
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* File Viewer Modal */}
+      <Dialog open={!!fileToView} onOpenChange={() => setFileToView(null)}>
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>File Viewer</DialogTitle>
+          </DialogHeader>
+          {fileToView && (
+            <AdminFileViewer 
+              filePath={fileToView.file_path}
+              fileType={fileToView.file_type}
+              fileName={fileToView.file_name}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </AppLayout>
