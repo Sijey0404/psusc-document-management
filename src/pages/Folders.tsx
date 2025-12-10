@@ -112,10 +112,16 @@ const Folders = () => {
   const [documentsLoading, setDocumentsLoading] = useState(false);
   const [isGeneratingPortfolio, setIsGeneratingPortfolio] = useState(false);
   const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
-  const [portfolioForm, setPortfolioForm] = useState({
+  const [portfolioForm, setPortfolioForm] = useState<{
+    facultyName: string;
+    semester: string;
+    academicYear: string;
+    deadlines: Record<string, string>;
+  }>({
     facultyName: "",
     semester: "",
     academicYear: "",
+    deadlines: {},
   });
   
   const defaultFormState = {
@@ -247,10 +253,17 @@ const Folders = () => {
   };
 
   const openPortfolioDialog = () => {
+    // Initialize deadlines for all subfolders
+    const initialDeadlines: Record<string, string> = {};
+    portfolioSubfolders.forEach((name) => {
+      initialDeadlines[name] = "";
+    });
+    
     setPortfolioForm({
       facultyName: "",
       semester: "",
       academicYear: "",
+      deadlines: initialDeadlines,
     });
     setPortfolioDialogOpen(true);
   };
@@ -350,12 +363,15 @@ const Folders = () => {
       let createdCount = 0;
       let skippedCount = 0;
       for (const name of portfolioSubfolders) {
+        const deadlineValue = portfolioForm.deadlines[name]?.trim();
+        const deadline = deadlineValue ? new Date(deadlineValue).toISOString() : null;
+        
         const { error: childError } = await (supabase as any)
           .from("document_categories")
           .insert([{
             name,
             description: null,
-            deadline: null,
+            deadline: deadline,
             semester: null,
             department_id: adminDepartmentId,
             parent_id: parentId,
@@ -1416,45 +1432,47 @@ const Folders = () => {
 
         {/* Auto-generate Faculty Portfolio Dialog */}
         <Dialog open={portfolioDialogOpen} onOpenChange={setPortfolioDialogOpen}>
-          <DialogContent className="sm:max-w-sm">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Auto-generate Faculty Portfolio</DialogTitle>
               <DialogDescription>
-                Create a faculty portfolio folder with the standard set of subfolders.
+                Create a faculty portfolio folder with the standard set of subfolders. Set deadlines for each subfolder (optional).
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleGeneratePortfolio} className="space-y-3 py-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="facultyName" className="text-sm">Portfolio name *</Label>
-                <Input
-                  id="facultyName"
-                  value={portfolioForm.facultyName}
-                  onChange={(e) =>
-                    setPortfolioForm((prev) => ({ ...prev, facultyName: e.target.value }))
-                  }
-                  placeholder="Enter portfolio name"
-                  required
-                  className="h-9"
-                />
-              </div>
+            <form onSubmit={handleGeneratePortfolio} className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="facultyName" className="text-sm">Portfolio name *</Label>
+                  <Input
+                    id="facultyName"
+                    value={portfolioForm.facultyName}
+                    onChange={(e) =>
+                      setPortfolioForm((prev) => ({ ...prev, facultyName: e.target.value }))
+                    }
+                    placeholder="Enter portfolio name"
+                    required
+                    className="h-9"
+                  />
+                </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="portfolioSemester" className="text-sm">Semester *</Label>
-                <Select
-                  value={portfolioForm.semester}
-                  onValueChange={(value) =>
-                    setPortfolioForm((prev) => ({ ...prev, semester: value }))
-                  }
-                >
-                  <SelectTrigger id="portfolioSemester" className="w-full h-9">
-                    <SelectValue placeholder="Select semester" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1st Sem.">1st Sem.</SelectItem>
-                    <SelectItem value="2nd Sem.">2nd Sem.</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="space-y-1.5">
+                  <Label htmlFor="portfolioSemester" className="text-sm">Semester *</Label>
+                  <Select
+                    value={portfolioForm.semester}
+                    onValueChange={(value) =>
+                      setPortfolioForm((prev) => ({ ...prev, semester: value }))
+                    }
+                  >
+                    <SelectTrigger id="portfolioSemester" className="w-full h-9">
+                      <SelectValue placeholder="Select semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1st Sem.">1st Sem.</SelectItem>
+                      <SelectItem value="2nd Sem.">2nd Sem.</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -1474,14 +1492,38 @@ const Folders = () => {
                 </p>
               </div>
 
-              <div className="text-xs text-muted-foreground border rounded-md bg-muted/40 px-2 py-1.5">
-                <p className="mb-1.5 font-medium">The following subfolders will be created automatically:</p>
-                <ScrollArea className="h-24 w-full rounded">
-                  <ul className="list-disc list-inside space-y-0.5 pr-2 text-xs">
+              <div className="space-y-3 border-t pt-4">
+                <Label className="text-sm font-semibold">Subfolder Deadlines (Optional)</Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Set deadlines for each subfolder. Leave empty if no deadline is needed.
+                </p>
+                <ScrollArea className="h-[400px] w-full rounded border p-4">
+                  <div className="space-y-4">
                     {portfolioSubfolders.map((name) => (
-                      <li key={name}>{name}</li>
+                      <div key={name} className="space-y-1.5">
+                        <Label htmlFor={`deadline-${name}`} className="text-xs font-medium">
+                          {name}
+                        </Label>
+                        <Input
+                          id={`deadline-${name}`}
+                          type="datetime-local"
+                          value={portfolioForm.deadlines[name] || ""}
+                          onChange={(e) =>
+                            setPortfolioForm((prev) => ({
+                              ...prev,
+                              deadlines: {
+                                ...prev.deadlines,
+                                [name]: normalizeDateTimeLocalValue(e.target.value),
+                              },
+                            }))
+                          }
+                          step="60"
+                          min={new Date().toISOString().slice(0, 16)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </ScrollArea>
               </div>
 
