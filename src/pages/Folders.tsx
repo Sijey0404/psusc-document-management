@@ -1232,10 +1232,12 @@ const Folders = () => {
                       </p>
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
                         <span>{folder.semester || "No semester"}</span>
-                        <span>•</span>
-                        <span>
-                          {folder.deadline ? format(new Date(folder.deadline), "PPP p") : "No deadline"}
-                        </span>
+                        {folder.deadline && (
+                          <>
+                            <span>•</span>
+                            <span>{format(new Date(folder.deadline), "PPP p")}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
