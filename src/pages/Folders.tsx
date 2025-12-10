@@ -1384,28 +1384,12 @@ const Folders = () => {
                   Optional: Select the semester for this folder.
                 </p>
               </div>
-              
-              <div className="space-y-1">
-                <Label htmlFor="deadline" className="text-xs">Deadline</Label>
-                <Input
-                  id="deadline"
-                  type="datetime-local"
-                  value={formData.deadline}
-                      onChange={(e) => setFormData({ ...formData, deadline: normalizeDateTimeLocalValue(e.target.value) })}
-                      step="60"
-                  min={new Date().toISOString().slice(0, 16)}
-                  className="h-8 text-sm"
-                />
-                <p className="text-[10px] text-muted-foreground leading-tight">
-                  Optional deadline for this folder. Only future dates can be selected.
-                </p>
-                  </div>
                 </>
               )}
               
               <div className="text-[10px] text-muted-foreground border rounded-md bg-muted/40 px-2 py-1 leading-tight">
                 {isRootContext
-                  ? "Root folders require scheduling details for deadlines."
+                  ? "Root folder will be created at the top level."
                   : `Parent folder: ${currentFolder?.name || "Parent"}`}
               </div>
               
