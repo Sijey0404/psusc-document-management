@@ -19,6 +19,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import * as z from "zod";
+
+// Register form schema
+const registerSchema = z.object({
+  firstName: z.string().min(1, "First name is required").trim(),
+  middleName: z.string().min(1, "Middle name is required").trim(),
+  lastName: z.string().min(1, "Last name is required").trim(),
+  employee_id: z.string().length(8, "Employee ID must be exactly 8 characters").trim(),
+  email: z.string().email("Please enter a valid email address").trim(),
+  position: z.string().min(1, "Position is required"),
+  departmentId: z.string().min(1, "Department is required"),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const Register = () => {
   const [firstName, setFirstName] = useState("");
@@ -74,42 +88,24 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
 
-    if (!firstName.trim() || !middleName.trim() || !lastName.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide your first, middle, and last name.",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
+    // Validate using schema
+    const formData: RegisterFormValues = {
+      firstName: firstName.trim(),
+      middleName: middleName.trim(),
+      lastName: lastName.trim(),
+      employee_id: employeeId.trim(),
+      email: email.trim(),
+      position,
+      departmentId,
+    };
 
-    if (!employeeId.trim() || employeeId.trim().length !== 8) {
+    const validationResult = registerSchema.safeParse(formData);
+    
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0];
       toast({
-        title: "Invalid Employee ID",
-        description: "Employee ID must be exactly 8 characters.",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-
-    if (!departmentId) {
-      toast({
-        title: "Missing Department",
-        description: "Please select a department.",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid email address",
+        title: "Validation Error",
+        description: firstError.message,
         variant: "destructive",
       });
       setLoading(false);
@@ -282,12 +278,14 @@ const Register = () => {
                 <Input
                   id="employeeId"
                   type="text"
+                  placeholder="12345678"
                   value={employeeId}
                   onChange={(e) => setEmployeeId(e.target.value.slice(0, 8))}
                   required
                   maxLength={8}
                   className="h-8 text-sm"
                 />
+                <p className="text-xs text-muted-foreground">Must be exactly 8 characters</p>
               </div>
               
               <div className="space-y-1.5">
