@@ -1183,15 +1183,6 @@ const Folders = () => {
                 <ChevronLeft className="h-4 w-4" />
                 Up
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1"
-                onClick={openPortfolioDialog}
-              >
-                <Folder className="h-4 w-4" />
-                Auto-generate Faculty Portfolio
-              </Button>
               <Button onClick={openCreateFolderDialog} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 New Folder
