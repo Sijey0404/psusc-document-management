@@ -1113,8 +1113,8 @@ const Folders = () => {
                 onClick={() => setFolderPath([])}
               >
                 <Home className="h-4 w-4 mr-1" />
-                Root
-                        </Button>
+                Home
+              </Button>
               {folderPath.map((folder, index) => (
                 <div key={folder.id} className="flex items-center gap-2">
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
