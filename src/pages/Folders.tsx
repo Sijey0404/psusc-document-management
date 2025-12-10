@@ -92,7 +92,7 @@ const normalizeDateTimeLocalValue = (value: string): string => {
 
 const Folders = () => {
   const { toast } = useToast();
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const adminDepartmentId = profile?.department_id || null;
   
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -257,6 +257,15 @@ const Folders = () => {
 
   const handleGeneratePortfolio = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isAdmin) {
+      toast({
+        title: "Unauthorized",
+        description: "Only administrators can generate portfolio folders.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!adminDepartmentId) {
       toast({
@@ -436,6 +445,15 @@ const Folders = () => {
     e.preventDefault();
     
     try {
+      if (!isAdmin) {
+        toast({
+          title: "Unauthorized",
+          description: "Only administrators can create or edit folders.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (!adminDepartmentId) {
         toast({
           title: "Department not set",
@@ -508,6 +526,15 @@ const Folders = () => {
 
   const handleDelete = async () => {
     if (!selectedFolder) return;
+    
+    if (!isAdmin) {
+      toast({
+        title: "Unauthorized",
+        description: "Only administrators can delete folders.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       setIsDeleting(true);
