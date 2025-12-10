@@ -282,14 +282,12 @@ const Register = () => {
                 <Input
                   id="employeeId"
                   type="text"
-                  placeholder="12345678"
                   value={employeeId}
                   onChange={(e) => setEmployeeId(e.target.value.slice(0, 8))}
                   required
                   maxLength={8}
                   className="h-8 text-sm"
                 />
-                <p className="text-xs text-muted-foreground">Must be exactly 8 characters</p>
               </div>
               
               <div className="space-y-1.5">
