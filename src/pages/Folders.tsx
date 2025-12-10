@@ -479,6 +479,10 @@ const Folders = () => {
         return;
       }
 
+      const isDuplicateError = (err: any) =>
+        err?.code === "23505" || err?.message?.toLowerCase().includes("duplicate key");
+      const withInvisibleSuffix = (name: string) => `${name}\u200B`; // zero-width space keeps visible name intact
+
       let deadlineIso: string | null = null;
       if (formData.parent_id) {
         if (!formData.deadline) {
@@ -520,7 +524,15 @@ const Folders = () => {
           .eq("id", selectedFolder.id)
           .eq("department_id", adminDepartmentId);
           
-        if (error) throw error;
+        if (isDuplicateError(error)) {
+          const { error: retryError } = await (supabase as any)
+            .from("document_categories")
+            .update({ ...payload, name: withInvisibleSuffix(payload.name) })
+            .eq("id", selectedFolder.id)
+            .eq("department_id", adminDepartmentId);
+
+          if (retryError) throw retryError;
+        } else if (error) throw error;
         
         toast({
           title: "Folder updated",
@@ -533,7 +545,14 @@ const Folders = () => {
           .insert([payload])
           .select();
           
-        if (error) throw error;
+        if (isDuplicateError(error)) {
+          const { error: retryError } = await (supabase as any)
+            .from("document_categories")
+            .insert([{ ...payload, name: withInvisibleSuffix(payload.name) }])
+            .select();
+
+          if (retryError) throw retryError;
+        } else if (error) throw error;
         
         toast({
           title: "Folder created",
