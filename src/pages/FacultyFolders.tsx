@@ -58,6 +58,10 @@ const FacultyFolders = () => {
   const currentFolder = folderPath[folderPath.length - 1] || null;
   const [folderDocuments, setFolderDocuments] = useState<FolderDocument[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [plainFolderDialogOpen, setPlainFolderDialogOpen] = useState(false);
+  const [plainFolderName, setPlainFolderName] = useState("");
+  const [plainFolderDescription, setPlainFolderDescription] = useState("");
+  const [creatingPlainFolder, setCreatingPlainFolder] = useState(false);
 
   const fetchFolders = async () => {
     try {
@@ -192,6 +196,50 @@ const FacultyFolders = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handlePlainFolderCreate = async () => {
+    if (!currentFolder?.id || !profile?.department_id || !plainFolderName.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide a folder name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setCreatingPlainFolder(true);
+      const { error } = await (supabase as any)
+        .from("document_categories")
+        .insert({
+          name: plainFolderName.trim(),
+          description: plainFolderDescription.trim() || null,
+          department_id: profile.department_id,
+          parent_id: currentFolder.id,
+          deadline: null,
+          semester: null,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Folder created",
+        description: `"${plainFolderName.trim()}" has been added under ${currentFolder.name}.`,
+      });
+
+      setPlainFolderName("");
+      setPlainFolderDescription("");
+      setPlainFolderDialogOpen(false);
+      fetchFolders();
+    } catch (error: any) {
+      toast({
+        title: "Failed to create folder",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingPlainFolder(false);
+    }
+  };
 
   const fetchFolderDocuments = async (folderId: string) => {
     if (!profile?.department_id) return;
@@ -636,6 +684,42 @@ const FacultyFolders = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={plainFolderDialogOpen} onOpenChange={setPlainFolderDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Subfolder</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="plainFolderName">Folder Name</Label>
+              <Input
+                id="plainFolderName"
+                value={plainFolderName}
+                onChange={(e) => setPlainFolderName(e.target.value)}
+                placeholder="Untitled folder"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="plainFolderDescription">Description</Label>
+              <Textarea
+                id="plainFolderDescription"
+                value={plainFolderDescription}
+                onChange={(e) => setPlainFolderDescription(e.target.value)}
+                placeholder="Optional description"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPlainFolderDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handlePlainFolderCreate} disabled={creatingPlainFolder}>
+              {creatingPlainFolder ? "Creating..." : "Create Folder"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
